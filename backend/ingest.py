@@ -3,8 +3,8 @@ import whisper
 from sentence_transformers import SentenceTransformer
 import chromadb
 import os
-from utils.chunker import chunk_transcript
-from utils.transcript_loader import load_transcript
+from .utils.chunker import chunk_transcript
+from .utils.transcript_loader import load_transcript
 
 def ingest_video(video_url, video_id):
     try:
@@ -52,16 +52,23 @@ def ingest_video(video_url, video_id):
         client = chromadb.PersistentClient(path="./chroma_db")
         collection = client.get_or_create_collection(name="transcripts")
         for i, chunk in enumerate(chunks):
-            collection.add(
-                ids=[f"{video_id}_{i}"],
-                embeddings=[embeddings[i]] if embeddings else None,
-                metadatas=[{
-                    "text": chunk['text'],
-                    "start_time": chunk['start'],
-                    "end_time": chunk['end'],
-                    "video_id": video_id
-                }]
-            )
+            metadata = {
+                "text": chunk['text'],
+                "start_time": chunk['start'],
+                "end_time": chunk['end'],
+                "video_id": video_id
+            }
+            if embeddings is not None:
+                collection.add(
+                    ids=[f"{video_id}_{i}"],
+                    embeddings=[embeddings[i]],
+                    metadatas=[metadata]
+                )
+            else:
+                collection.add(
+                    ids=[f"{video_id}_{i}"],
+                    metadatas=[metadata]
+                )
     except Exception as e:
         print(f"ChromaDB failed: {e}, storing in memory")
         # Fallback: store in global list

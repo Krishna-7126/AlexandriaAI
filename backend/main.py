@@ -1,11 +1,10 @@
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uuid
-from ingest import ingest_video
-from rag import ask_question
-from summarizer import get_summary
-from session import get_session_history, add_to_session
+from .ingest import ingest_video
+from .rag import ask_question
+from .summarizer import get_summary
+from .session import get_session_history, add_to_session
 
 app = FastAPI()
 
@@ -52,7 +51,17 @@ def summary(video_id: str):
 @app.get("/timestamps/{video_id}")
 def timestamps(video_id: str):
     try:
-        # For simplicity, return dummy timestamps; implement properly later
-        return [{"time": 0, "label": "Start"}]
+        import chromadb
+        client = chromadb.PersistentClient(path="./chroma_db")
+        collection = client.get_collection(name="transcripts")
+        results = collection.get(where={"video_id": video_id})
+        if not results['ids']:
+            raise Exception("No timestamps found")
+        ts = [
+            {"time": int(metadata.get('start_time', 0)), "label": f"Chunk {i + 1}"}
+            for i, metadata in enumerate(results['metadatas'])
+        ]
+        return ts
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Timestamps failed: {e}")
+        return [{"time": 0, "label": "Start"}]
