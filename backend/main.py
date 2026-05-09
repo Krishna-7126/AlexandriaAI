@@ -214,6 +214,44 @@ def timestamps(video_id: str):
             "status": "no_data"
         }
 
+
+@app.get("/videos")
+def list_videos():
+    """List all video_ids currently stored in the transcripts collection."""
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path="./chroma_db")
+        collection = client.get_collection(name="transcripts")
+        results = collection.get()
+        vids = set()
+        for meta in results.get('metadatas', []):
+            vid = meta.get('video_id')
+            if vid:
+                vids.add(vid)
+        return {"video_ids": sorted(list(vids)), "count": len(vids), "status": "success"}
+    except Exception as e:
+        print(f"List videos failed: {e}")
+        return {"video_ids": [], "count": 0, "status": "error", "message": str(e)}
+
+
+@app.post("/videos/{video_id}/clear")
+def clear_video(video_id: str):
+    """Delete all transcript entries for a given video_id from ChromaDB and in-memory store."""
+    try:
+        import chromadb
+        from .utils.transcript_store import clear_chunks
+        client = chromadb.PersistentClient(path="./chroma_db")
+        collection = client.get_collection(name="transcripts")
+        try:
+            collection.delete(where={"video_id": video_id})
+        except Exception as e:
+            print(f"Chroma delete warning: {e}")
+        clear_chunks(video_id)
+        return {"video_id": video_id, "status": "cleared"}
+    except Exception as e:
+        print(f"Clear video failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 def health():
     return {
