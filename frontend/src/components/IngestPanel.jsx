@@ -51,6 +51,8 @@ export default function IngestPanel({ onIngestSuccess }) {
     }
   };
 
+  const hasRealTranscript = result && !['youtube_metadata', 'url_only'].includes(result.source);
+
   return (
     <div className="glass-panel" style={{ marginBottom: '1.5rem' }}>
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
@@ -114,13 +116,14 @@ export default function IngestPanel({ onIngestSuccess }) {
       )}
       
       {success && (
-        <div className="fade-in" style={{ marginTop: '1rem', color: 'var(--success)', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
+        <div className="fade-in" style={{ marginTop: '1rem', color: hasRealTranscript ? 'var(--success)' : '#fbbf24', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CheckCircle size={16} /> Video processed successfully!
+            {hasRealTranscript ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+            {hasRealTranscript ? 'Video transcript processed successfully!' : 'Only video metadata was found. Q&A needs captions or uploaded audio/video.'}
           </div>
           {result && (
             <small style={{ opacity: 0.85, color: 'var(--text-secondary)' }}>
-              ID: {result.video_id} • Source: {result.source || 'unknown'} • Chunks: {result.chunk_count ?? 0}
+              ID: {result.video_id} • Source: {result.source || 'unknown'} • Chunks: {result.chunk_count ?? 0} • Words: {result.transcript_length ?? 0}
             </small>
           )}
         </div>

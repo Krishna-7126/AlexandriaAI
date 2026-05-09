@@ -11,7 +11,10 @@ def _get_api_key() -> str | None:
 
 
 def heavy_ai_enabled() -> bool:
-    return os.getenv("ENABLE_GEMINI", "0").strip().lower() in {"1", "true", "yes", "on"}
+    value = os.getenv("ENABLE_GEMINI")
+    if value is None:
+        return True
+    return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
 def gemini_available() -> bool:
@@ -23,7 +26,8 @@ def _configure_model():
     if not genai or not api_key:
         return None
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    return genai.GenerativeModel(model_name)
 
 
 def generate_text(prompt: str, *, temperature: float = 0.2, max_output_tokens: int = 512) -> str | None:

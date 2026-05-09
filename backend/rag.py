@@ -1,11 +1,13 @@
 import chromadb
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+import os
 from .utils.similarity import keyword_similarity
 from .utils.transcript_store import get_chunks
 from .utils.gemini_client import generate_text, gemini_available
 from .utils.summary_helper import extractive_summary
+
+
+def _embeddings_enabled() -> bool:
+    return os.getenv("ENABLE_EMBEDDINGS", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _format_context(chunks):
@@ -46,6 +48,15 @@ def _build_quality_guidance(quality_score: str, quality_warnings: list[str]) -> 
         return "Transcript quality is moderate. Be concise and include a small uncertainty note if the answer is not fully supported."
     return "Transcript quality is high. Answer normally, but stay grounded in the transcript."
 
+
+def _coerce_warnings(value):
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(";") if part.strip()]
+    return []
+
+
 def ask_question(video_id, question, history=[]):
     try:
         client = chromadb.PersistentClient(path="./chroma_db")
@@ -68,8 +79,12 @@ def ask_question(video_id, question, history=[]):
 
     best_idx = 0
     top_indices = [0]
-    if embeddings:
+    if embeddings and _embeddings_enabled():
         try:
+            from sentence_transformers import SentenceTransformer
+            from sklearn.metrics.pairwise import cosine_similarity
+            import numpy as np
+
             model_emb = SentenceTransformer('all-MiniLM-L6-v2')
             q_emb = model_emb.encode([question])[0]
             similarities = cosine_similarity([q_emb], embeddings)[0]
@@ -79,8 +94,12 @@ def ask_question(video_id, question, history=[]):
             print(f"Embedding QA failed: {e}, falling back to text matching")
             embeddings = None
 
-    if embeddings is None:
+    if embeddings is None and _embeddings_enabled():
         try:
+            from sentence_transformers import SentenceTransformer
+            from sklearn.metrics.pairwise import cosine_similarity
+            import numpy as np
+
             model_emb = SentenceTransformer('all-MiniLM-L6-v2')
             text_embs = model_emb.encode([t['text'] for t in texts])
             q_emb = model_emb.encode([question])[0]
@@ -89,16 +108,39 @@ def ask_question(video_id, question, history=[]):
             top_indices = list(np.argsort(similarities)[::-1][:3])
         except Exception as e:
             print(f"Text embedding failed: {e}, using keyword matching")
-            similarities = [keyword_similarity(question, t['text']) for t in texts]
-            best_idx = int(np.argmax(similarities))
-            top_indices = list(np.argsort(similarities)[::-1][:3])
+            scored = sorted(
+                enumerate(texts),
+                key=lambda item: keyword_similarity(question, item[1].get('text', '')),
+                reverse=True,
+            )
+            if scored:
+                best_idx = scored[0][0]
+                top_indices = [index for index, _chunk in scored[:3]]
+    elif embeddings is None or not _embeddings_enabled():
+        scored = sorted(
+            enumerate(texts),
+            key=lambda item: keyword_similarity(question, item[1].get('text', '')),
+            reverse=True,
+        )
+        if scored:
+            best_idx = scored[0][0]
+            top_indices = [index for index, _chunk in scored[:3]]
 
     selected_chunks = [texts[i] for i in top_indices if i < len(texts)] or [texts[best_idx]]
     best_chunk = selected_chunks[0]
     timestamps = [best_chunk.get('start_time', 0), best_chunk.get('end_time', 0)]
 
+    source = str(best_chunk.get('source', '')).lower()
+    if source in {"youtube_metadata", "url_only"}:
+        return (
+            "I could not answer from the actual video speech because no real transcript was available. "
+            "I only have YouTube metadata for this link. Try a video with captions, upload the video/audio file, "
+            "or use the AssemblyAI transcription path so I can answer from spoken content.",
+            timestamps,
+        )
+
     quality_score = str(best_chunk.get('quality_score', 'unknown')).lower()
-    quality_warnings = best_chunk.get('quality_warnings') or []
+    quality_warnings = _coerce_warnings(best_chunk.get('quality_warnings'))
     quality_note = ""
     if quality_score == "low":
         quality_note = "Note: this answer is based on a low-confidence transcript, so it may be incomplete or approximate.\n\n"

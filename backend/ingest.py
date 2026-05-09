@@ -4,6 +4,7 @@ import importlib
 import os
 import subprocess
 import tempfile
+import shutil
 from .utils.chunker import chunk_transcript
 from .utils.transcript_loader import load_transcript
 from .utils.transcript_store import store_chunks
@@ -252,6 +253,70 @@ def _load_youtube_metadata(url: str) -> dict | None:
         return None
 
 
+def _download_youtube_audio(url: str) -> str | None:
+    temp_dir = tempfile.mkdtemp(prefix="alc_audio_")
+    output_template = os.path.join(temp_dir, "%(id)s.%(ext)s")
+    try:
+        try:
+            import yt_dlp  # type: ignore
+
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": output_template,
+                "quiet": True,
+                "no_warnings": True,
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "128",
+                    }
+                ],
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.extract_info(url, download=True)
+        except Exception as package_error:
+            print(f"yt-dlp package audio download failed: {package_error}; trying module command")
+            subprocess.run(
+                [
+                    "python",
+                    "-m",
+                    "yt_dlp",
+                    "-x",
+                    "--audio-format",
+                    "mp3",
+                    "--audio-quality",
+                    "128K",
+                    "-o",
+                    output_template,
+                    url,
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+        audio_files = []
+        for root, _dirs, files in os.walk(temp_dir):
+            for file_name in files:
+                if file_name.lower().endswith((".mp3", ".m4a", ".webm", ".wav", ".ogg")):
+                    audio_files.append(os.path.join(root, file_name))
+        if not audio_files:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return None
+
+        source_path = audio_files[0]
+        fd, stable_path = tempfile.mkstemp(prefix="alc_audio_", suffix=os.path.splitext(source_path)[1] or ".mp3")
+        os.close(fd)
+        shutil.copyfile(source_path, stable_path)
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return stable_path
+    except Exception as e:
+        print(f"yt-dlp audio fallback failed: {e}")
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return None
+
+
 def _create_segments_from_entries(entries):
     segments = []
     for entry in entries:
@@ -323,6 +388,8 @@ def _assess_transcript_quality(transcript: str, segments: list[dict], source: st
         warnings.append("Highly repetitive transcript")
     if source == "unknown":
         warnings.append("Transcript source unknown")
+    if source in {"youtube_metadata", "url_only"}:
+        warnings.append("No real transcript was available")
 
     if not warnings:
         score = "high"
@@ -378,7 +445,7 @@ def ingest_transcript(transcript, video_id, segments, source="unknown", method="
                 "source": source,
                 "method": method,
                 "quality_score": quality["score"],
-                "quality_warnings": quality["warnings"],
+                "quality_warnings": "; ".join(quality["warnings"]),
                 "word_count": quality["word_count"],
                 "chunk_count": quality["chunk_count"],
                 "unique_ratio": quality["unique_ratio"],
@@ -457,28 +524,26 @@ def ingest_video(video_url, video_id):
     if not transcript:
         # Try to transcribe audio via AssemblyAI if configured.
         if assemblyai_available():
+            tmp_path = None
             try:
-                # Attempt to download audio using yt-dlp if available
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
-                    tmp_path = tmp.name
-                try:
-                    subprocess.run(["yt-dlp", "-x", "--audio-format", "mp3", "-o", tmp_path, canonical_url], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                tmp_path = _download_youtube_audio(canonical_url)
+                if tmp_path:
                     print(f"Downloaded audio to {tmp_path} for transcription")
                     result = transcribe_file(tmp_path)
                     transcript = str(result.get("text", "")).strip()
                     segments = _create_segments_from_assemblyai(result)
                     source = "assemblyai_audio"
-                except Exception as e:
-                    print(f"yt-dlp/AssemblyAI path failed: {e}")
-                    transcript = None
-                finally:
-                    try:
-                        if os.path.exists(tmp_path):
-                            os.remove(tmp_path)
-                    except Exception:
-                        pass
+                else:
+                    print("No audio file could be downloaded for AssemblyAI transcription")
             except Exception as e:
-                print(f"AssemblyAI transcription attempt failed: {e}")
+                print(f"yt-dlp/AssemblyAI path failed: {e}")
+                transcript = None
+            finally:
+                try:
+                    if tmp_path and os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception:
+                    pass
 
         # If still no transcript, instruct the user to upload a file or configure tools
         if not transcript:
@@ -500,7 +565,7 @@ def ingest_video(video_url, video_id):
                 segments = [{"text": transcript, "start": 0.0, "end": 4.0}]
                 source = "youtube_metadata"
             else:
-            # Last-resort fast fallback: ingest a compact structural placeholder rather than erroring.
+                # Last-resort fast fallback: ingest a compact structural placeholder rather than erroring.
                 transcript = f"Video source: {canonical_url}. No captions were available, but the app processed the video link for follow-up Q&A."
                 segments = [{"text": transcript, "start": 0.0, "end": 2.0}]
                 source = "url_only"

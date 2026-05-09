@@ -69,7 +69,8 @@ def ingest(request: IngestRequest):
             "source": ingest_result.get("source", "unknown"),
             "method": ingest_result.get("method", "unknown"),
             "chunk_count": ingest_result.get("chunk_count", 0),
-            "transcript_length": ingest_result.get("transcript_length", 0)
+            "transcript_length": ingest_result.get("transcript_length", 0),
+            "quality": ingest_result.get("quality", {}),
         }
     except Exception as e:
         print(f"Ingest failed: {e}")
@@ -91,6 +92,7 @@ async def ingest_file(file: UploadFile = File(...), title: str | None = Form(Non
             "method": ingest_result.get("method", "assemblyai_file"),
             "chunk_count": ingest_result.get("chunk_count", 0),
             "transcript_length": ingest_result.get("transcript_length", 0),
+            "quality": ingest_result.get("quality", {}),
         }
     except Exception as e:
         print(f"File ingest failed: {e}")
@@ -259,6 +261,8 @@ def quality(video_id: str):
 
         first = results["metadatas"][0]
         warnings = first.get("quality_warnings") or []
+        if isinstance(warnings, str):
+            warnings = [part.strip() for part in warnings.split(";") if part.strip()]
         return {
             "video_id": video_id,
             "quality": {
