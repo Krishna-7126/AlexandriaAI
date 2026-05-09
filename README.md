@@ -319,3 +319,22 @@ Recommended demo flow:
 ## Notes
 
 This project is optimized for a hackathon MVP. The backend currently stores one loaded transcript in memory, so restarting the server clears the loaded video. This keeps the implementation simple and free while leaving a clear path for future upgrades.
+
+// # RAG in oour project 
+
+
+YouTube Video
+       ↓
+Transcript Extraction
+       ↓
+Transcript Chunking
+       ↓
+Store Chunks in Memory
+       ↓
+User Question
+       ↓
+Keyword Matching / Retrieval
+       ↓
+Find Best Chunk
+       ↓
+Return Answer
