@@ -1,5 +1,5 @@
 import chromadb
-from .utils.summary_helper import summarize_by_topics, get_last_n_minutes_summary
+from .utils.summary_helper import summarize_by_topics, get_last_n_minutes_summary, extractive_summary
 from .utils.transcript_store import get_chunks
 from .utils.gemini_client import generate_text, gemini_available
 
@@ -29,7 +29,7 @@ def get_summary(video_id):
         ]
         # Start with a compact concatenation of the first few chunks
         summary = " ".join([c['text'] for c in chunks[:12] if c.get('text')])
-        # Prefer the Gemini summarizer when available; otherwise try a lightweight local topic summary
+        # Prefer a fast local summary; Gemini is opt-in via ENABLE_GEMINI.
         if chunks and gemini_available():
             try:
                 gemini_summary = generate_text(_build_overall_summary_prompt(chunks), temperature=0.2, max_output_tokens=220)
@@ -37,19 +37,35 @@ def get_summary(video_id):
                     summary = gemini_summary
             except Exception as e:
                 print(f"Gemini overall summary failed: {e}")
-                # fall through to local summarization below
         else:
             try:
-                # Derive a compact overall summary from topic summaries if possible
+                # Fast local summary path: use the first useful topic snippets.
                 topics = summarize_by_topics(" ".join([c.get('text', '') for c in chunks]), chunks)
                 if topics:
-                    # Join the first few topic summaries into a single paragraph
                     summary = " ".join([t.get('summary', '') for t in topics[:4]]).strip()
             except Exception as e:
                 print(f"Local topic summarization failed: {e}")
+        # If still nothing useful, use a lightweight extractive summarizer
+        if not summary or len(summary.strip()) < 80:
+            try:
+                full_text = " ".join([c.get('text', '') for c in chunks])
+                if full_text:
+                    summary = extractive_summary(full_text, num_sentences=4)
+            except Exception as e:
+                print(f"Extractive summarization failed: {e}")
         # Ensure summary isn't excessively long; truncate to a reasonable size
         if summary and len(summary) > 1200:
             summary = summary[:1200].rsplit('.', 1)[0] + '.'
+        if summary:
+            # Collapse duplicate lines/sentences that can appear when transcript chunks repeat
+            lines = []
+            seen = set()
+            for part in summary.splitlines():
+                normalized = ' '.join(part.split()).lower()
+                if normalized and normalized not in seen:
+                    lines.append(part.strip())
+                    seen.add(normalized)
+            summary = ' '.join(lines) if lines else summary
     except Exception as e:
         print(f"Summary failed: {e}, using fallback")
         chunks = get_chunks(video_id)[:5]

@@ -1,29 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { getTimestamps } from '../api/client';
 
 export default function Timeline({ videoId, onTimestampClick }) {
   const [timestamps, setTimestamps] = useState([]);
   const [loading, setLoading] = useState(false);
+  const requestSeq = useRef(0);
 
   useEffect(() => {
     if (!videoId) return;
+
+    const requestId = ++requestSeq.current;
+    setTimestamps([]);
 
     const fetchTimeline = async () => {
       setLoading(true);
       try {
         const data = await getTimestamps(videoId);
+        if (requestSeq.current !== requestId) return;
         if (data && data.timestamps) {
           setTimestamps(data.timestamps);
         }
       } catch (err) {
+        if (requestSeq.current !== requestId) return;
         console.error("Failed to fetch timeline", err);
       } finally {
-        setLoading(false);
+        if (requestSeq.current === requestId) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTimeline();
+    return () => {
+      requestSeq.current += 1;
+    };
   }, [videoId]);
 
   if (!videoId || timestamps.length === 0) {

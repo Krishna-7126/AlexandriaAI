@@ -2,6 +2,63 @@ import re
 from typing import List, Tuple
 from .gemini_client import generate_text, gemini_available
 
+# Small, self-contained extractive summarizer (no external deps)
+_STOPWORDS = {
+    'the','and','is','in','it','of','to','a','that','this','for','on','with','as','are','was','be','by','an','or','from','at','which','but'
+}
+
+
+def extractive_summary(text: str, num_sentences: int = 3) -> str:
+    """Return an extractive summary of `text` by scoring sentences with word frequencies."""
+    if not text or len(text.split()) < 30:
+        return text.strip()
+
+    # Split into sentences / lines and remove duplicates while preserving order
+    raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+|\n+', text) if s.strip()]
+    sentences = []
+    seen_sentences = set()
+    for sentence in raw_sentences:
+        key = re.sub(r'\s+', ' ', sentence).lower()
+        if key in seen_sentences:
+            continue
+        seen_sentences.add(key)
+        sentences.append(sentence)
+    if not sentences:
+        return text.strip()
+
+    # Build word frequency
+    freq = {}
+    for word in re.findall(r"\w+", text.lower()):
+        if word in _STOPWORDS or len(word) <= 2:
+            continue
+        freq[word] = freq.get(word, 0) + 1
+
+    if not freq:
+        return ' '.join(sentences[:num_sentences])
+
+    # Score sentences
+    scores = []
+    for sent in sentences:
+        words = re.findall(r"\w+", sent.lower())
+        score = sum(freq.get(w, 0) for w in words)
+        # penalize extremely long sentences slightly
+        score = score / (1 + 0.01 * max(0, len(words) - 30))
+        scores.append(score)
+
+    # Select top sentences but preserve order
+    ranked_idx = sorted(range(len(sentences)), key=lambda i: scores[i], reverse=True)[:num_sentences]
+    ranked_idx.sort()
+    selected = [sentences[i] for i in ranked_idx]
+    # Remove adjacent duplicates in the final text as a last line of defense
+    cleaned = []
+    last_key = None
+    for sentence in selected:
+        key = re.sub(r'\s+', ' ', sentence).lower()
+        if key != last_key:
+            cleaned.append(sentence)
+        last_key = key
+    return ' '.join(cleaned)
+
 
 def _chunk_context(chunks: List[dict], limit: int = 12) -> str:
     parts = []

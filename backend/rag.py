@@ -5,6 +5,7 @@ import numpy as np
 from .utils.similarity import keyword_similarity
 from .utils.transcript_store import get_chunks
 from .utils.gemini_client import generate_text, gemini_available
+from .utils.summary_helper import extractive_summary
 
 
 def _format_context(chunks):
@@ -32,6 +33,18 @@ def _build_answer_prompt(question, context, history):
         f"{history_text}\n\n"
         "Answer with a short paragraph."
     )
+
+
+def _build_quality_guidance(quality_score: str, quality_warnings: list[str]) -> str:
+    if quality_score == "low":
+        detail = "; ".join(str(w) for w in quality_warnings[:3])
+        return (
+            "Transcript quality is low. Be careful, brief, and explicitly note uncertainty. "
+            f"If useful, mention these warnings: {detail}."
+        )
+    if quality_score == "medium":
+        return "Transcript quality is moderate. Be concise and include a small uncertainty note if the answer is not fully supported."
+    return "Transcript quality is high. Answer normally, but stay grounded in the transcript."
 
 def ask_question(video_id, question, history=[]):
     try:
@@ -84,17 +97,38 @@ def ask_question(video_id, question, history=[]):
     best_chunk = selected_chunks[0]
     timestamps = [best_chunk.get('start_time', 0), best_chunk.get('end_time', 0)]
 
+    quality_score = str(best_chunk.get('quality_score', 'unknown')).lower()
+    quality_warnings = best_chunk.get('quality_warnings') or []
+    quality_note = ""
+    if quality_score == "low":
+        quality_note = "Note: this answer is based on a low-confidence transcript, so it may be incomplete or approximate.\n\n"
+    elif quality_score == "medium":
+        quality_note = "Note: this answer is based on a moderate-confidence transcript.\n\n"
+
     context = _format_context(selected_chunks)
     answer = None
     if gemini_available():
         prompt = _build_answer_prompt(question, context, history)
+        quality_guidance = _build_quality_guidance(quality_score, quality_warnings)
+        prompt = f"{quality_guidance}\n\n{prompt}"
         try:
             answer = generate_text(prompt, temperature=0.2, max_output_tokens=256)
         except Exception as e:
             print(f"Gemini QA failed: {e}")
 
     if not answer:
-        answer = best_chunk.get('text', '').strip()
+        # Create a concise local answer by extractive-summarizing the selected chunks
+        try:
+            combined = ' '.join([c.get('text', '') for c in selected_chunks])
+            answer = extractive_summary(combined, num_sentences=2)
+        except Exception:
+            answer = best_chunk.get('text', '').strip()
     if not answer:
         answer = "I found a relevant section, but the transcript chunk is empty."
+
+    if quality_note and answer:
+        answer = f"{quality_note}{answer}"
+        if quality_warnings:
+            answer += "\n\nTranscript warnings: " + "; ".join(str(w) for w in quality_warnings[:3])
+
     return answer, timestamps

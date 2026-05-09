@@ -61,11 +61,15 @@ def ingest(request: IngestRequest):
     try:
         video_id = str(uuid.uuid4())
         print(f"Ingest request received for video_url={request.video_url} assign video_id={video_id}")
-        ingest_video(request.video_url, video_id)
+        ingest_result = ingest_video(request.video_url, video_id)
         return {
             "video_id": video_id,
             "status": "success",
-            "message": f"Video ingested successfully. Use video_id '{video_id}' for queries."
+            "message": f"Video ingested successfully. Use video_id '{video_id}' for queries.",
+            "source": ingest_result.get("source", "unknown"),
+            "method": ingest_result.get("method", "unknown"),
+            "chunk_count": ingest_result.get("chunk_count", 0),
+            "transcript_length": ingest_result.get("transcript_length", 0)
         }
     except Exception as e:
         print(f"Ingest failed: {e}")
@@ -78,11 +82,15 @@ async def ingest_file(file: UploadFile = File(...), title: str | None = Form(Non
         video_id = str(uuid.uuid4())
         file_bytes = await file.read()
         print(f"File ingest request received for file={file.filename} assign video_id={video_id}")
-        ingest_assemblyai_file(file_bytes, file.filename or title or "upload", video_id)
+        ingest_result = ingest_assemblyai_file(file_bytes, file.filename or title or "upload", video_id)
         return {
             "video_id": video_id,
             "status": "success",
             "message": f"File ingested successfully. Use video_id '{video_id}' for queries.",
+            "source": ingest_result.get("source", "upload"),
+            "method": ingest_result.get("method", "assemblyai_file"),
+            "chunk_count": ingest_result.get("chunk_count", 0),
+            "transcript_length": ingest_result.get("transcript_length", 0),
         }
     except Exception as e:
         print(f"File ingest failed: {e}")
@@ -232,6 +240,41 @@ def list_videos():
     except Exception as e:
         print(f"List videos failed: {e}")
         return {"video_ids": [], "count": 0, "status": "error", "message": str(e)}
+
+
+@app.get("/quality/{video_id}")
+def quality(video_id: str):
+    """Return a compact quality report for the stored transcript."""
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path="./chroma_db")
+        collection = client.get_collection(name="transcripts")
+        results = collection.get(where={"video_id": video_id})
+        if not results.get("metadatas"):
+            return {
+                "video_id": video_id,
+                "quality": {"score": "none", "warnings": ["No transcript data found"], "word_count": 0, "chunk_count": 0, "unique_ratio": 0.0},
+                "status": "no_data",
+            }
+
+        first = results["metadatas"][0]
+        warnings = first.get("quality_warnings") or []
+        return {
+            "video_id": video_id,
+            "quality": {
+                "score": first.get("quality_score", "unknown"),
+                "warnings": warnings,
+                "word_count": int(first.get("word_count", 0) or 0),
+                "chunk_count": int(first.get("chunk_count", 0) or 0),
+                "unique_ratio": float(first.get("unique_ratio", 0.0) or 0.0),
+                "source": first.get("source", "unknown"),
+                "method": first.get("method", "unknown"),
+            },
+            "status": "success",
+        }
+    except Exception as e:
+        print(f"Quality endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/videos/{video_id}/clear")

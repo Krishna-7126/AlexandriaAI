@@ -8,10 +8,28 @@ export async function ingestVideo(videoUrl) {
   });
   const result = await response.json();
   if (response.ok) {
-    return result.video_id;
+    return result;
   } else {
     throw new Error(result.detail || result.message || 'Failed to ingest video');
   }
+}
+
+export async function ingestFile(file, title = '') {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (title) {
+    formData.append('title', title);
+  }
+
+  const response = await fetch(`${API_BASE}/ingest-file`, {
+    method: 'POST',
+    body: formData,
+  });
+  const result = await response.json();
+  if (response.ok) {
+    return result;
+  }
+  throw new Error(result.detail || result.message || 'Failed to ingest file');
 }
 
 export async function getOverallSummary(videoId) {
@@ -35,6 +53,12 @@ export async function getLastMinutesSummary(videoId, minutes = 5) {
 export async function getTimestamps(videoId) {
   const response = await fetch(`${API_BASE}/timestamps/${videoId}`);
   if (!response.ok) throw new Error('Failed to get timestamps');
+  return await response.json();
+}
+
+export async function getQuality(videoId) {
+  const response = await fetch(`${API_BASE}/quality/${videoId}`);
+  if (!response.ok) throw new Error('Failed to get quality');
   return await response.json();
 }
 

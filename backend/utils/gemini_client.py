@@ -10,8 +10,12 @@ def _get_api_key() -> str | None:
     return os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 
+def heavy_ai_enabled() -> bool:
+    return os.getenv("ENABLE_GEMINI", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def gemini_available() -> bool:
-    return genai is not None and bool(_get_api_key())
+    return genai is not None and bool(_get_api_key()) and heavy_ai_enabled()
 
 
 def _configure_model():

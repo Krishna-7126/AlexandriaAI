@@ -7,3 +7,4 @@ scikit-learn
 youtube-transcript-api
 google-generativeai
 python-multipart
+yt-dlp

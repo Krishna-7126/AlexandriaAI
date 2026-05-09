@@ -10,11 +10,13 @@ import './index.css';
 function App() {
   const [videoId, setVideoId] = useState(null);
   const [youtubeId, setYoutubeId] = useState(null);
+  const [ingestInfo, setIngestInfo] = useState(null);
   const playerRef = useRef(null);
 
-  const handleIngestSuccess = (id, ytId) => {
+  const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
     setYoutubeId(ytId);
+    setIngestInfo(info || null);
   };
 
   const handleTimestampClick = (seconds) => {
@@ -39,6 +41,19 @@ function App() {
           <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Master any video with AI-powered insights</p>
         </div>
       </header>
+
+      {ingestInfo && (
+        <div className="glass-panel" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Current analysis source</div>
+            <div style={{ fontSize: '1rem', fontWeight: 700 }}>{ingestInfo.source || 'unknown'}</div>
+          </div>
+          <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <div>Chunks: {ingestInfo.chunk_count ?? 0}</div>
+            <div>Words: {ingestInfo.transcript_length ?? 0}</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         {/* Left Column: Video & Chat */}

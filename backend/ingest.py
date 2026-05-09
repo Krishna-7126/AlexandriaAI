@@ -1,11 +1,13 @@
-from sentence_transformers import SentenceTransformer
 import chromadb
 import re
 import importlib
+import os
+import subprocess
+import tempfile
 from .utils.chunker import chunk_transcript
 from .utils.transcript_loader import load_transcript
 from .utils.transcript_store import store_chunks
-from .utils.assemblyai_client import transcribe_uploaded_file, assemblyai_available
+from .utils.assemblyai_client import transcribe_uploaded_file, assemblyai_available, transcribe_file
 
 _youtube_transcript_spec = importlib.util.find_spec("youtube_transcript_api")
 if _youtube_transcript_spec is not None:
@@ -24,6 +26,13 @@ def _extract_youtube_id(url: str) -> str | None:
         if match:
             return match.group(1)
     return None
+
+
+def _canonical_youtube_url(url: str) -> str:
+    video_id = _extract_youtube_id(url)
+    if video_id:
+        return f"https://www.youtube.com/watch?v={video_id}"
+    return url
 
 
 def _load_youtube_transcript(url: str):
@@ -118,6 +127,131 @@ def _get_entry_value(entry, key, default=""):
     return getattr(entry, key, default)
 
 
+def _fast_mode_enabled() -> bool:
+    return os.getenv("ENABLE_EMBEDDINGS", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_timestamp(value: str) -> float:
+    value = value.strip()
+    match = re.match(r"(?:(\d+):)?(\d{2}):(\d{2})[\.,](\d{3})", value)
+    if not match:
+        return 0.0
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+    seconds = int(match.group(3) or 0)
+    millis = int(match.group(4) or 0)
+    return hours * 3600 + minutes * 60 + seconds + millis / 1000.0
+
+
+def _parse_caption_file(path: str):
+    entries = []
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as file_handle:
+            text = file_handle.read()
+    except Exception:
+        return entries
+
+    blocks = re.split(r"\n\s*\n", text)
+    for block in blocks:
+        lines = [line.strip() for line in block.splitlines() if line.strip()]
+        if not lines:
+            continue
+        time_line = None
+        payload_lines = []
+        for line in lines:
+            if "-->" in line and time_line is None:
+                time_line = line
+            elif not line.isdigit() and not line.startswith("WEBVTT"):
+                payload_lines.append(line)
+        if not time_line:
+            continue
+        try:
+            start_raw, end_raw = [part.strip().split(" ")[0] for part in time_line.split("-->")[:2]]
+            start = _parse_timestamp(start_raw)
+            end = _parse_timestamp(end_raw)
+            payload = " ".join(payload_lines).strip()
+            if payload:
+                entries.append({"text": payload, "start": start, "duration": max(0.5, end - start)})
+        except Exception:
+            continue
+    return entries
+
+
+def _load_youtube_subtitles(url: str):
+    """Try yt-dlp subtitle download before heavier transcription paths."""
+    try:
+        import yt_dlp  # type: ignore
+    except Exception:
+        yt_dlp = None
+
+    temp_dir = tempfile.mkdtemp(prefix="alc_subs_")
+    try:
+        if yt_dlp is not None:
+            ydl_opts = {
+                "skip_download": True,
+                "writesubtitles": True,
+                "writeautomaticsub": True,
+                "subtitleslangs": ["en", "en-US", "en-GB"],
+                "subtitlesformat": "vtt",
+                "outtmpl": os.path.join(temp_dir, "%(id)s.%(ext)s"),
+                "quiet": True,
+                "no_warnings": True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                video_id = info.get("id", "video")
+        else:
+            video_id = "video"
+            subprocess.run([
+                "python", "-m", "yt_dlp",
+                "--skip-download",
+                "--write-subs",
+                "--write-auto-subs",
+                "--sub-langs", "en,en-US,en-GB",
+                "--sub-format", "vtt",
+                "-o", os.path.join(temp_dir, "%(id)s.%(ext)s"),
+                url,
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        subtitle_files = []
+        for root, _dirs, files in os.walk(temp_dir):
+            for file_name in files:
+                if file_name.endswith(('.vtt', '.srt')):
+                    subtitle_files.append(os.path.join(root, file_name))
+
+        for subtitle_file in subtitle_files:
+            entries = _parse_caption_file(subtitle_file)
+            if entries:
+                print(f"Loaded {len(entries)} caption entries from {subtitle_file}")
+                return entries
+    except Exception as e:
+        print(f"yt-dlp subtitle fallback failed: {e}")
+    finally:
+        try:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+    return None
+
+
+def _load_youtube_metadata(url: str) -> dict | None:
+    try:
+        result = subprocess.run(
+            ["yt-dlp", "--dump-single-json", "--skip-download", url],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        import json
+
+        return json.loads(result.stdout)
+    except Exception as e:
+        print(f"yt-dlp metadata fallback failed: {e}")
+        return None
+
+
 def _create_segments_from_entries(entries):
     segments = []
     for entry in entries:
@@ -174,19 +308,56 @@ def _create_segments_from_assemblyai(result):
     return segments
 
 
-def ingest_transcript(transcript, video_id, segments):
+def _assess_transcript_quality(transcript: str, segments: list[dict], source: str, method: str) -> dict:
+    text = (transcript or "").strip()
+    words = text.split()
+    unique_ratio = len({w.lower().strip('.,!?;:"\'()[]{}') for w in words if w.strip()}) / max(1, len(words)) if words else 0.0
+    warnings = []
+    if not text:
+        warnings.append("Empty transcript")
+    if len(words) < 120:
+        warnings.append("Short transcript")
+    if len(segments) < 3:
+        warnings.append("Few transcript chunks")
+    if unique_ratio < 0.25 and len(words) >= 40:
+        warnings.append("Highly repetitive transcript")
+    if source == "unknown":
+        warnings.append("Transcript source unknown")
+
+    if not warnings:
+        score = "high"
+    elif len(warnings) == 1:
+        score = "medium"
+    else:
+        score = "low"
+
+    return {
+        "score": score,
+        "warnings": warnings,
+        "word_count": len(words),
+        "chunk_count": len(segments),
+        "unique_ratio": round(unique_ratio, 3),
+    }
+
+
+def ingest_transcript(transcript, video_id, segments, source="unknown", method="unknown"):
     if not transcript:
         transcript = load_transcript()
     if not segments:
         segments = [{"text": transcript, "start": 0.0, "end": max(2.0, len(transcript.split()) * 0.5)}]
 
+    quality = _assess_transcript_quality(transcript, segments, source, method)
+
     chunks = chunk_transcript(transcript, segments)
-    try:
-        model_emb = SentenceTransformer('all-MiniLM-L6-v2')
-        embeddings = model_emb.encode([c['text'] for c in chunks])
-    except Exception as e:
-        print(f"Embeddings failed: {e}, using keyword fallback")
-        embeddings = None
+    embeddings = None
+    if _fast_mode_enabled():
+        try:
+            from sentence_transformers import SentenceTransformer
+            model_emb = SentenceTransformer('all-MiniLM-L6-v2')
+            embeddings = model_emb.encode([c['text'] for c in chunks])
+        except Exception as e:
+            print(f"Embeddings failed: {e}, using keyword fallback")
+            embeddings = None
 
     try:
         client = chromadb.PersistentClient(path="./chroma_db")
@@ -197,12 +368,20 @@ def ingest_transcript(transcript, video_id, segments):
             pass
 
         ids = [f"{video_id}_{i}" for i in range(len(chunks))]
+        documents = [chunk['text'] for chunk in chunks]
         metadatas = [
             {
                 "text": chunk['text'],
                 "start_time": chunk['start'],
                 "end_time": chunk['end'],
-                "video_id": video_id
+                "video_id": video_id,
+                "source": source,
+                "method": method,
+                "quality_score": quality["score"],
+                "quality_warnings": quality["warnings"],
+                "word_count": quality["word_count"],
+                "chunk_count": quality["chunk_count"],
+                "unique_ratio": quality["unique_ratio"],
             }
             for chunk in chunks
         ]
@@ -212,9 +391,9 @@ def ingest_transcript(transcript, video_id, segments):
             embeddings = None
 
         if embeddings is not None:
-            collection.add(ids=ids, embeddings=[[float(value) for value in embedding] for embedding in embeddings], metadatas=metadatas)
+            collection.add(ids=ids, embeddings=[[float(value) for value in embedding] for embedding in embeddings], documents=documents, metadatas=metadatas)
         else:
-            collection.add(ids=ids, metadatas=metadatas)
+            collection.add(ids=ids, documents=documents, metadatas=metadatas)
     except Exception as e:
         print(f"ChromaDB failed: {e}, storing in memory")
         store_chunks(video_id, [
@@ -222,10 +401,24 @@ def ingest_transcript(transcript, video_id, segments):
                 "text": chunk['text'],
                 "start_time": chunk['start'],
                 "end_time": chunk['end'],
-                "video_id": video_id
+                "video_id": video_id,
+                "source": source,
+                "method": method,
+                "quality_score": quality["score"],
+                "quality_warnings": quality["warnings"],
             }
             for chunk in chunks
         ])
+
+
+    return {
+        "video_id": video_id,
+        "chunk_count": len(chunks),
+        "transcript_length": len(transcript.split()) if transcript else 0,
+        "quality": quality,
+        "source": source,
+        "method": method,
+    }
 
 
 def ingest_assemblyai_file(file_bytes: bytes, file_name: str, video_id: str):
@@ -234,27 +427,84 @@ def ingest_assemblyai_file(file_bytes: bytes, file_name: str, video_id: str):
     result = transcribe_uploaded_file(file_bytes, file_name)
     transcript = str(result.get("text", "")).strip()
     segments = _create_segments_from_assemblyai(result)
-    ingest_transcript(transcript, video_id, segments)
+    payload = ingest_transcript(transcript, video_id, segments, source="upload", method="assemblyai_file")
+    payload.update({"source": "upload", "method": "assemblyai_file"})
+    return payload
 
 
 def ingest_video(video_url, video_id):
     transcript = None
     segments = []
+    source = "unknown"
+    canonical_url = _canonical_youtube_url(video_url)
     if video_url and ("youtube.com" in video_url or "youtu.be" in video_url):
-        entries = _load_youtube_transcript(video_url)
+        entries = _load_youtube_transcript(canonical_url)
         if entries:
             segments = _create_segments_from_entries(entries)
             transcript = " ".join([seg["text"] for seg in segments])
+            source = "youtube_captions"
     # If we couldn't obtain a transcript from YouTube, avoid silently falling back
     # to a demo transcript. Ask the caller to provide a file or configure a
     # transcription provider instead.
     if not transcript:
-        # If AssemblyAI is configured, instruct user to upload a file for transcription
-        if assemblyai_available():
-            raise RuntimeError("No transcript found for the YouTube URL. Upload media via /ingest-file to transcribe with AssemblyAI.")
-        # Otherwise, instruct user to install youtube_transcript_api or upload a file
-        raise RuntimeError(
-            "No transcript available. Install 'youtube_transcript_api' in the backend, set up AssemblyAI, or use /ingest-file to upload media for transcription."
-        )
+        # Fast fallback: try auto subtitles via yt-dlp before expensive ASR.
+        entries = _load_youtube_subtitles(canonical_url)
+        if entries:
+            segments = _create_segments_from_entries(entries)
+            transcript = " ".join([seg["text"] for seg in segments])
+            source = "youtube_auto_subtitles"
 
-    ingest_transcript(transcript, video_id, segments)
+    if not transcript:
+        # Try to transcribe audio via AssemblyAI if configured.
+        if assemblyai_available():
+            try:
+                # Attempt to download audio using yt-dlp if available
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+                    tmp_path = tmp.name
+                try:
+                    subprocess.run(["yt-dlp", "-x", "--audio-format", "mp3", "-o", tmp_path, canonical_url], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    print(f"Downloaded audio to {tmp_path} for transcription")
+                    result = transcribe_file(tmp_path)
+                    transcript = str(result.get("text", "")).strip()
+                    segments = _create_segments_from_assemblyai(result)
+                    source = "assemblyai_audio"
+                except Exception as e:
+                    print(f"yt-dlp/AssemblyAI path failed: {e}")
+                    transcript = None
+                finally:
+                    try:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"AssemblyAI transcription attempt failed: {e}")
+
+        # If still no transcript, instruct the user to upload a file or configure tools
+        if not transcript:
+            metadata = _load_youtube_metadata(canonical_url) if video_url else None
+            if metadata:
+                title = metadata.get("title") or "Unknown title"
+                description = metadata.get("description") or ""
+                uploader = metadata.get("uploader") or metadata.get("channel") or "Unknown channel"
+                tags = metadata.get("tags") or []
+                pieces = [
+                    f"Video title: {title}",
+                    f"Channel: {uploader}",
+                ]
+                if description:
+                    pieces.append(f"Description: {description[:1000]}")
+                if tags:
+                    pieces.append(f"Tags: {', '.join(tags[:20])}")
+                transcript = "\n".join(pieces)
+                segments = [{"text": transcript, "start": 0.0, "end": 4.0}]
+                source = "youtube_metadata"
+            else:
+            # Last-resort fast fallback: ingest a compact structural placeholder rather than erroring.
+                transcript = f"Video source: {canonical_url}. No captions were available, but the app processed the video link for follow-up Q&A."
+                segments = [{"text": transcript, "start": 0.0, "end": 2.0}]
+                source = "url_only"
+
+    payload = ingest_transcript(transcript, video_id, segments, source=source, method=source)
+    payload.update({"source": source, "method": source})
+    return payload

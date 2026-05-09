@@ -17,6 +17,13 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
     scrollToBottom();
   }, [chatHistory]);
 
+  useEffect(() => {
+    setChatHistory([]);
+    setQuestion('');
+    setIsAsking(false);
+    setSessionId(`session_${Date.now()}`);
+  }, [videoId]);
+
   const handleAsk = async (e) => {
     e.preventDefault();
     if (!question.trim() || !videoId) return;
@@ -80,6 +87,21 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const splitAnswer = (content) => {
+    const lines = String(content || '').split('\n');
+    const noteLines = [];
+    const bodyLines = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.toLowerCase().startsWith('note:') || trimmed.toLowerCase().startsWith('transcript warnings:')) {
+        noteLines.push(trimmed);
+      } else if (trimmed) {
+        bodyLines.push(line);
+      }
+    }
+    return { note: noteLines.join(' • '), body: bodyLines.join('\n').trim() };
+  };
+
   return (
     <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', marginBottom: '1rem' }}>
@@ -93,7 +115,11 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
             <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>Try "What is the main topic?" or "Explain the concept at 2:00"</p>
           </div>
         ) : (
-          chatHistory.map((msg) => (
+          chatHistory.map((msg) => {
+            const isAi = msg.role === 'ai';
+            const parsed = isAi ? splitAnswer(msg.content) : { note: '', body: msg.content };
+
+            return (
             <div key={msg.id} className="fade-in" style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
               background: msg.role === 'user' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.08)',
@@ -105,10 +131,15 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
               lineHeight: 1.6,
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+              {parsed.note && (
+                <div style={{ marginBottom: '0.75rem', padding: '0.6rem 0.75rem', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.85rem' }}>
+                  {parsed.note}
+                </div>
+              )}
+              <div style={{ whiteSpace: 'pre-wrap' }}>{parsed.body || msg.content}</div>
               
               {/* Render Timestamps as clickable badges */}
-              {msg.role === 'ai' && msg.timestamps && msg.timestamps.length > 0 && (
+              {isAi && msg.timestamps && msg.timestamps.length > 0 && (
                 <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {msg.timestamps.map((ts, idx) => (
                     <button 
@@ -132,7 +163,8 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
                 </div>
               )}
             </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
