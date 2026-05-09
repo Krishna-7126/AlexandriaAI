@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Video, Loader2, CheckCircle, AlertCircle, Upload } from 'lucide-react';
+import { Video, ArrowRight, Loader2, CheckCircle, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
 import { ingestVideo, ingestFile } from '../api/client';
 
 export default function IngestPanel({ onIngestSuccess }) {
-  const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState('');
@@ -13,24 +12,23 @@ export default function IngestPanel({ onIngestSuccess }) {
   const [result, setResult] = useState(null);
 
   const handleIngest = async (e) => {
-    e.preventDefault();
-    if (mode === 'url' && !url) return;
-    if (mode === 'file' && !file) return;
+    if (e) e.preventDefault();
+    if (!url && !file) return;
     
     setLoading(true);
     setError('');
     setSuccess(false);
     
     try {
-      const ingestResult = mode === 'url'
+      const ingestResult = url 
         ? await ingestVideo(url)
         : await ingestFile(file, title || file.name);
+      
       setSuccess(true);
       setResult(ingestResult);
       
-      // Extract YouTube ID from URL
       let ytId = null;
-      if (mode === 'url') {
+      if (url) {
         try {
           const urlObj = new URL(url);
           if (urlObj.hostname.includes('youtube.com')) {
@@ -51,83 +49,101 @@ export default function IngestPanel({ onIngestSuccess }) {
     }
   };
 
-  const hasRealTranscript = result && !['youtube_metadata', 'url_only'].includes(result.source);
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setUrl(''); // Clear URL if file is selected
+    }
+  };
 
   return (
-    <div className="glass-panel" style={{ marginBottom: '1.5rem' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-        <Video color="var(--accent-color)" /> Load Video
-      </h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-        Analyze a YouTube URL or upload a local video/audio file.
-      </p>
-
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button type="button" onClick={() => setMode('url')} style={{ opacity: mode === 'url' ? 1 : 0.7 }}>
-          YouTube URL
-        </button>
-        <button type="button" onClick={() => setMode('file')} style={{ opacity: mode === 'file' ? 1 : 0.7 }}>
-          <Upload size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} /> File Upload
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Search Bar Style Input */}
+      <div className="glass-panel" style={{ 
+        padding: '0.4rem', 
+        borderRadius: '999px', 
+        display: 'flex', 
+        alignItems: 'center',
+        gap: '0.5rem',
+        background: '#121212',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
+        border: '2px solid #16e059'
+      }}>
+        <div style={{ padding: '0 1.25rem', color: '#16e059' }}>
+          <Video size={24} />
+        </div>
+        <input 
+          type="text" 
+          value={url} 
+          onChange={(e) => {setUrl(e.target.value); setFile(null);}} 
+          placeholder="Paste a video link or upload a video" 
+          disabled={loading}
+          style={{ 
+            flex: 1, 
+            border: 'none', 
+            background: 'transparent', 
+            color: '#fff',
+            fontSize: '1.25rem',
+            boxShadow: 'none',
+            padding: '1rem 0',
+            fontWeight: 500
+          }}
+        />
+        <button 
+          onClick={handleIngest}
+          disabled={loading || (!url && !file)}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: '#16e059',
+            color: '#000',
+            width: '80px',
+            height: '60px',
+            borderRadius: '999px',
+            padding: 0
+          }}
+        >
+          {loading ? <Loader2 className="animate-spin" size={24} /> : <ArrowRight size={28} />}
         </button>
       </div>
-      
-      <form onSubmit={handleIngest} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        {mode === 'url' ? (
-          <input 
-            type="text" 
-            value={url} 
-            onChange={(e) => setUrl(e.target.value)} 
-            placeholder="https://www.youtube.com/watch?v=..." 
-            disabled={loading}
-            style={{ flex: 1 }}
-          />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-            <input
-              type="file"
-              accept="audio/*,video/*"
-              disabled={loading}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{ flex: 1 }}
-            />
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Optional title"
-              disabled={loading}
-              style={{ flex: 1 }}
-            />
-          </div>
-        )}
-        <button type="submit" disabled={loading || (mode === 'url' ? !url : !file)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {loading ? (
-            <><Loader2 className="animate-spin" size={18} /> Processing...</>
-          ) : (
-            'Analyze'
-          )}
-        </button>
-      </form>
 
-      {error && (
-        <div className="fade-in" style={{ marginTop: '1rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <AlertCircle size={16} /> {error}
+      {/* Sub-buttons Row */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+         <button style={{ background: '#222', color: '#ccc', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => document.getElementById('file-input').click()}>
+            <Upload size={16} /> Upload
+         </button>
+         <button style={{ background: '#222', color: '#ccc', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Copy size={16} /> YouTube Video Link
+         </button>
+         <button style={{ background: '#222', color: '#ccc', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Plus size={16} /> Other Links
+         </button>
+      </div>
+
+      <input 
+        id="file-input"
+        type="file" 
+        hidden 
+        onChange={handleFileChange}
+        accept="audio/*,video/*,application/pdf"
+      />
+
+      {file && !loading && (
+        <div className="fade-in glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-fixed)' }}>
+           <span style={{ fontWeight: 600 }}>Selected: {file.name}</span>
+           <button onClick={handleIngest} style={{ background: 'var(--primary)', color: '#fff' }}>Process File</button>
         </div>
       )}
-      
-      {success && (
-        <div className="fade-in" style={{ marginTop: '1rem', color: hasRealTranscript ? 'var(--success)' : '#fbbf24', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {hasRealTranscript ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-            {hasRealTranscript ? 'Video transcript processed successfully!' : 'Only video metadata was found. Q&A needs captions or uploaded audio/video.'}
-          </div>
-          {result && (
-            <small style={{ opacity: 0.85, color: 'var(--text-secondary)' }}>
-              ID: {result.video_id} • Source: {result.source || 'unknown'} • Chunks: {result.chunk_count ?? 0} • Words: {result.transcript_length ?? 0}
-            </small>
-          )}
+
+      {error && (
+        <div className="fade-in glass-panel" style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--error-container)' }}>
+          <AlertCircle size={18} /> {error}
         </div>
       )}
     </div>
   );
 }
+
+

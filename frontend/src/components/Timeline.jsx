@@ -49,8 +49,8 @@ export default function Timeline({ videoId, onTimestampClick }) {
 
   return (
     <div className="glass-panel" style={{ marginTop: '1.5rem' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem' }}>
-        <Clock size={18} color="var(--accent-color)" /> Video Chapters
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
+        <Clock size={18} color="var(--primary)" /> Video Chapters
       </h3>
       
       {loading ? (
@@ -63,7 +63,7 @@ export default function Timeline({ videoId, onTimestampClick }) {
               onClick={() => onTimestampClick && onTimestampClick(ts.time)}
               style={{
                 flexShrink: 0,
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-container)',
                 border: '1px solid var(--glass-border)',
                 color: 'var(--text-primary)',
                 display: 'flex',
@@ -73,7 +73,7 @@ export default function Timeline({ videoId, onTimestampClick }) {
                 minWidth: '120px'
               }}
             >
-              <span style={{ fontSize: '0.8rem', color: 'var(--accent-hover)', marginBottom: '0.25rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--on-primary-fixed-variant)', marginBottom: '0.25rem', fontWeight: 600 }}>
                 {formatTime(ts.time)}
               </span>
               <span style={{ fontSize: '0.9rem', textAlign: 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
