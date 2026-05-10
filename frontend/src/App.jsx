@@ -226,23 +226,19 @@ function App() {
               <button className="ghost" onClick={() => { setVideoId(null); setIngestInfo(null); }} style={{ borderRadius: '12px' }}>Analyze Another Video</button>
             </div>
 
-            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }}>
-              {/* Left Column: Player and Chapters */}
+            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
+              {/* Left Column: Player, Chapters, and Summary */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0 }}>
                 <div className="atmospheric-glow" style={{ borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                   <VideoPlayer videoId={youtubeId} ref={playerRef} />
                 </div>
                 <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                <SummaryDashboard videoId={videoId} isProcessing={isProcessing} previewTitle={ingestInfo?.preview_title} previewSummary={ingestInfo?.preview_summary} onTimestampClick={handleTimestampClick} />
               </div>
 
-              {/* Right Column: AI Insights and Chat */}
-              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: 'calc(100vh - 200px)', minWidth: 0 }}>
-                <div style={{ flex: '1', overflowY: 'hidden' }}>
-                  <SummaryDashboard videoId={videoId} isProcessing={isProcessing} previewTitle={ingestInfo?.preview_title} previewSummary={ingestInfo?.preview_summary} onTimestampClick={handleTimestampClick} />
-                </div>
-                <div style={{ flex: '1', overflowY: 'hidden' }}>
-                  <ChatPanel videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
-                </div>
+              {/* Right Column: Chat */}
+              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 150px)', minWidth: 0, position: 'sticky', top: '100px' }}>
+                <ChatPanel videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
               </div>
             </div>
           </section>

@@ -52,7 +52,7 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
 
   if (isProcessing && timestamps.length === 0) {
     return (
-      <div className="glass-panel" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '0.25rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
           <Clock size={18} color="var(--primary)" /> Video Chapters
         </h3>
@@ -89,7 +89,7 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
   };
 
   return (
-    <div className="glass-panel" style={{ marginTop: '1.5rem' }}>
+    <div className="glass-panel">
       <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
         <Clock size={18} color="var(--primary)" /> Video Chapters
       </h3>

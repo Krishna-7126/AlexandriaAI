@@ -118,14 +118,9 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
   }
 
   return (
-    <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       {isProcessing && (previewTitle || previewSummary) && (
-        <section className="fade-in" style={{
-          border: '1px solid var(--outline-variant)',
-          background: 'rgba(255,255,255,0.76)',
-          padding: '1rem 1.1rem',
-          borderRadius: '1rem'
-        }}>
+        <section className="fade-in glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
             Instant Preview
           </div>
@@ -146,15 +141,7 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
       )}
 
       {quality && (
-        <section className="fade-in" style={{ 
-          border: '1px solid var(--glass-border)', 
-          background: 'var(--surface-container-low)', 
-          padding: '1.25rem', 
-          borderRadius: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem'
-        }}>
+        <section className="fade-in glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analysis Quality</h3>
             <span style={{
@@ -180,88 +167,76 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
       )}
       
       {/* Overall Summary */}
-      <section className="fade-in">
+      <section className="fade-in glass-panel" style={{ padding: '2rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
           <Star size={20} fill="var(--primary)" /> Overall Insight
         </h3>
-        <p style={{ 
-          color: 'var(--text-primary)', 
-          lineHeight: 1.8, 
-          background: '#fff', 
-          padding: '1.5rem', 
-          borderRadius: '1rem',
-          border: '1px solid var(--outline-variant)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-        }}>
+        <p style={{ color: 'var(--text-primary)', lineHeight: 1.8 }}>
           {overall || "No overall summary available yet."}
         </p>
       </section>
 
-      {/* Topic Summaries */}
-      <section className="fade-in" style={{ animationDelay: '0.1s' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
-          <List size={20} /> Key Concepts
-        </h3>
-        {topics && topics.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {topics.map((t, i) => (
-              <div 
-                key={i} 
-                style={{ 
-                  background: '#fff', 
-                  border: '1px solid var(--outline-variant)',
-                  padding: '1.25rem', 
-                  borderRadius: '1rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
-                }}
-                onClick={() => onTimestampClick && onTimestampClick(t.timestamp)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.borderColor = 'var(--primary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateX(0)';
-                  e.currentTarget.style.borderColor = 'var(--outline-variant)';
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary)', fontWeight: 600 }}>{t.topic}</h4>
-                  <span style={{ 
-                    display: 'flex', alignItems: 'center', gap: '0.25rem', 
-                    fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)',
-                    background: 'var(--primary-fixed)',
-                    padding: '0.2rem 0.6rem', borderRadius: '999px'
-                  }}>
-                    <PlayCircle size={12} /> {formatTime(t.timestamp)}
-                  </span>
+      {/* Grid for Topics and Recent Context */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+        {/* Topic Summaries */}
+        <section className="fade-in glass-panel" style={{ animationDelay: '0.1s', padding: '2rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
+            <List size={20} /> Key Concepts
+          </h3>
+          {topics && topics.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {topics.map((t, i) => (
+                <div 
+                  key={i} 
+                  style={{ 
+                    background: '#fff', 
+                    border: '1px solid var(--outline-variant)',
+                    padding: '1.25rem', 
+                    borderRadius: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                  }}
+                  onClick={() => onTimestampClick && onTimestampClick(t.timestamp)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.borderColor = 'var(--outline-variant)';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary)', fontWeight: 600 }}>{t.topic}</h4>
+                    <span style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.25rem', 
+                      fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)',
+                      background: 'var(--primary-fixed)',
+                      padding: '0.2rem 0.6rem', borderRadius: '999px'
+                    }}>
+                      <PlayCircle size={12} /> {formatTime(t.timestamp)}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t.summary}</p>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t.summary}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>Topic summaries will be generated as analysis progresses.</p>
-        )}
-      </section>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>Topic summaries will be generated as analysis progresses.</p>
+          )}
+        </section>
 
-      {/* Last N Minutes */}
-      <section className="fade-in" style={{ animationDelay: '0.2s' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
-          <History size={20} /> Recent Context
-        </h3>
-        <div style={{ 
-          color: 'var(--text-primary)', 
-          lineHeight: 1.7, 
-          background: 'var(--surface-container-low)', 
-          padding: '1.25rem', 
-          borderRadius: '1rem',
-          border: '1px solid var(--glass-border)'
-        }}>
-          {recent || "Awaiting more lecture data for recent summary..."}
-        </div>
-      </section>
+        {/* Last N Minutes */}
+        <section className="fade-in glass-panel" style={{ animationDelay: '0.2s', padding: '2rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
+            <History size={20} /> Recent Context
+          </h3>
+          <div style={{ color: 'var(--text-primary)', lineHeight: 1.7 }}>
+            {recent || "Awaiting more lecture data for recent summary..."}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
