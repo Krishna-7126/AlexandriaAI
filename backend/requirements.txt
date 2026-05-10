@@ -1,12 +1,8 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.8.2
-sentence-transformers==3.1.0
-chromadb==0.5.15
-scikit-learn==1.5.2
-youtube-transcript-api==0.6.3
-google-generativeai==0.8.3
+youtube-transcript-api>=0.6.3
+google-generativeai>=0.8.3
 python-multipart==0.0.12
-yt-dlp==2024.10.7
-assemblyai==0.35.0
+yt-dlp>=2025.1.1
 python-dotenv==1.0.1

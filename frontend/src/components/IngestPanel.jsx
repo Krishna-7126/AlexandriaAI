@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Video, ArrowRight, Loader2, CheckCircle, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
 import { ingestVideo, ingestFile, getIngestStatus } from '../api/client';
 import SkeletonLoader from './SkeletonLoader';
@@ -17,18 +17,9 @@ export default function IngestPanel({ onIngestSuccess }) {
   const [currentStep, setCurrentStep] = useState('');
   const [startTime, setStartTime] = useState(null);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlParam = params.get('url');
-    if (urlParam) {
-      setUrl(urlParam);
-      setTimeout(() => {
-        handleIngest(null, urlParam);
-      }, 100);
-    }
-  }, []);
+  // Stable ref so useEffect can call handleIngest without stale closure
+  const handleIngestRef = useRef(null);
 
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const waitForJobCompletion = async (jobId) => {
     const maxAttempts = 180;
@@ -149,6 +140,25 @@ export default function IngestPanel({ onIngestSuccess }) {
       setLoading(false);
     }
   };
+
+  // Keep the ref always pointing at the latest handleIngest so extension auto-submit works
+  handleIngestRef.current = handleIngest;
+
+  // Auto-submit if the app was opened from the Chrome extension with a ?url= param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get('url');
+    if (urlParam) {
+      setUrl(urlParam);
+      // Small delay so React state has settled before we call ingest
+      setTimeout(() => {
+        if (handleIngestRef.current) {
+          handleIngestRef.current(null, urlParam);
+        }
+      }, 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];

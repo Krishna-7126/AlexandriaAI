@@ -40,102 +40,97 @@ def _canonical_youtube_url(url: str) -> str:
 
 
 def _load_youtube_transcript(url: str):
+    """Load transcript using youtube-transcript-api (v1.x compatible)."""
     if not YouTubeTranscriptApi:
         print("YouTubeTranscriptApi not installed; skipping YouTube subtitle load.")
         return None
     video_id = _extract_youtube_id(url)
     if not video_id:
         return None
+
     try:
-        # Newer versions expose `list_transcripts` as a classmethod
-        if hasattr(YouTubeTranscriptApi, "list_transcripts"):
-            print(f"Using YouTubeTranscriptApi.list_transcripts for {video_id}")
-            transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
-
-            # Prefer English transcripts first.
-            for finder in ("find_manually_created_transcript", "find_generated_transcript", "find_transcript"):
-                if hasattr(transcripts, finder):
-                    try:
-                        t = getattr(transcripts, finder)(["en"])
-                        return list(t.fetch())
-                    except Exception:
-                        pass
-
-            # Use any directly available transcript before attempting translation.
-            for t in transcripts:
-                try:
-                    entries = list(t.fetch())
-                    if entries:
-                        print(f"Using available transcript without translation: {len(entries)} entries from {t}")
-                        return entries
-                except Exception:
-                    continue
-
-            # Translation is a later fallback.
-            for t in transcripts:
-                try:
-                    translated = t.translate("en")
-                    entries = list(translated.fetch())
-                    if entries:
-                        print(f"Translated transcript fetched: {len(entries)} entries")
-                        return entries
-                except Exception:
-                    continue
-
-            try:
-                entries = YouTubeTranscriptApi.get_transcript(video_id)
-                entries = list(entries)
-                print(f"get_transcript returned {len(entries)} entries")
-                return entries
-            except Exception as e:
-                print(f"YouTube subtitle load failed: {e}")
-                return None
-
-        # Older versions use instance methods `list` and `fetch`
-        print(f"Falling back to instance API for {video_id}")
         api = YouTubeTranscriptApi()
+
+        # Try to list transcripts for fine-grained control
         try:
-            transcripts = api.list(video_id)
-        except Exception:
-            transcripts = None
+            transcript_list = api.list(video_id)
 
-        # If we got a TranscriptList, try to pick English or any available transcript.
-        if transcripts is not None:
-            for finder in ("find_manually_created_transcript", "find_generated_transcript", "find_transcript"):
-                if hasattr(transcripts, finder):
-                    try:
-                        t = getattr(transcripts, finder)(["en"])
-                        return list(t.fetch())
-                    except Exception:
-                        pass
-
-            for t in transcripts:
+            # Priority 1: Manual English transcript
+            for lang in ["en", "en-US", "en-GB"]:
                 try:
+                    t = transcript_list.find_manually_created_transcript([lang])
                     entries = list(t.fetch())
                     if entries:
-                        print(f"Using available instance transcript without translation: {len(entries)} entries from {t}")
+                        print(f"Found manual transcript ({lang}): {len(entries)} entries")
                         return entries
                 except Exception:
+                    pass
+
+            # Priority 2: Auto-generated English transcript
+            for lang in ["en", "en-US", "en-GB"]:
+                try:
+                    t = transcript_list.find_generated_transcript([lang])
+                    entries = list(t.fetch())
+                    if entries:
+                        print(f"Found auto-generated transcript ({lang}): {len(entries)} entries")
+                        return entries
+                except Exception:
+                    pass
+
+            # Priority 3: Any available transcript, translate if not English
+            for t in transcript_list:
+                try:
+                    entries = list(t.fetch())
+                    if not entries:
+                        continue
+                    if not t.language_code.startswith("en"):
+                        try:
+                            translated = t.translate("en")
+                            entries = list(translated.fetch())
+                            print(f"Translated {t.language_code} → en: {len(entries)} entries")
+                        except Exception:
+                            print(f"Translation failed, using raw {t.language_code}: {len(entries)} entries")
+                    else:
+                        print(f"Using transcript ({t.language_code}): {len(entries)} entries")
+                    if entries:
+                        return entries
+                except Exception as e:
+                    print(f"Transcript fetch failed: {e}")
                     continue
 
-        # Last resort: instance fetch (returns a reasonable transcript if available)
-        try:
-            entries = api.fetch(video_id)
-            entries = list(entries)
-            print(f"api.fetch returned {len(entries)} entries")
-            return entries
-        except Exception as e:
-            print(f"YouTube subtitle load failed: {e}")
-            return None
+        except Exception as list_err:
+            print(f"list() failed: {list_err}, trying direct fetch()")
+
+        # Fallback: try fetch() directly for English (and common variants)
+        for lang_combo in [["en"], ["en-US", "en"], ["en-GB", "en"], []]:
+            try:
+                kwargs = {"languages": lang_combo} if lang_combo else {}
+                entries = list(api.fetch(video_id, **kwargs))
+                if entries:
+                    print(f"Direct fetch({lang_combo}) returned {len(entries)} entries")
+                    return entries
+            except Exception:
+                continue
+
+        print(f"No usable transcript found for {video_id}")
+        return None
     except Exception as e:
-        print(f"YouTube transcript listing failed: {e}")
+        print(f"YouTube transcript load failed for {video_id}: {e}")
         return None
 
 
 def _get_entry_value(entry, key, default=""):
+    """Handle both dict-style and object-style transcript entries.
+    youtube-transcript-api v0.6.x returns FetchedTranscriptSnippet objects
+    with .text, .start, .duration attributes instead of plain dicts.
+    """
     if isinstance(entry, dict):
         return entry.get(key, default)
-    return getattr(entry, key, default)
+    # Try object attribute access
+    val = getattr(entry, key, None)
+    if val is not None:
+        return val
+    return default
 
 
 def _fast_mode_enabled() -> bool:

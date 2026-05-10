@@ -86,13 +86,18 @@ def _fallback_topics(chunks, max_topics=5):
 
 def _build_overall_summary_prompt(chunks):
     context = []
-    for chunk in chunks[:16]:
+    for chunk in chunks[:20]:
         context.append(f"({chunk.get('start', 0):.2f}-{chunk.get('end', 0):.2f}s) {chunk.get('text', '')}")
     return (
-        "Write a concise overall summary of the video transcript below. "
-        "Stay faithful to the transcript only. Do not add outside knowledge.\n\n"
+        "You are an expert academic summarizer. Read the following video transcript carefully and write a "
+        "clear, well-structured, and insightful summary in 3-5 sentences of fluent English. "
+        "Cover the main topic, key ideas, and any important conclusions or takeaways. "
+        "Write naturally—avoid bullet points, avoid jargon, and do not add any information not present in the transcript.\n\n"
+        "TRANSCRIPT:\n"
         + "\n".join(context)
+        + "\n\nSUMMARY:"
     )
+
 
 def get_summary(video_id):
     # Backwards-compatible wrapper that returns only the summary text.
@@ -117,7 +122,7 @@ def get_summary_with_method(video_id):
 
     if chunks and gemini_available():
         try:
-            gemini_summary = generate_text(_build_overall_summary_prompt(chunks), temperature=0.2, max_output_tokens=220)
+            gemini_summary = generate_text(_build_overall_summary_prompt(chunks), temperature=0.3, max_output_tokens=512)
             if gemini_summary:
                 summary = gemini_summary
                 method = "gemini"
