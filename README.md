@@ -37,7 +37,7 @@ AI Learning Companion is a FastAPI-based learning assistant that turns a YouTube
 Create a `.env` file in the project root with your API keys:
 
 ```env
-GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_API_KEY=your_google_api key here
 ASSEMBLYAI_API_KEY=your_assemblyai_api_key_here
 ```
 
