@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video, ArrowRight, Loader2, CheckCircle, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
 import { ingestVideo, ingestFile, getIngestStatus } from '../api/client';
 import SkeletonLoader from './SkeletonLoader';
@@ -16,6 +16,17 @@ export default function IngestPanel({ onIngestSuccess }) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
   const [startTime, setStartTime] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get('url');
+    if (urlParam) {
+      setUrl(urlParam);
+      setTimeout(() => {
+        handleIngest(null, urlParam);
+      }, 100);
+    }
+  }, []);
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -84,9 +95,10 @@ export default function IngestPanel({ onIngestSuccess }) {
     }
   };
 
-  const handleIngest = async (e) => {
+  const handleIngest = async (e, explicitUrl = null) => {
     if (e) e.preventDefault();
-    if (!url && !file) return;
+    const targetUrl = explicitUrl || url;
+    if (!targetUrl && !file) return;
     
     setLoading(true);
     setError('');
@@ -94,9 +106,9 @@ export default function IngestPanel({ onIngestSuccess }) {
     setStatusMessage('');
 
     let ytId = null;
-    if (url) {
+    if (targetUrl) {
       try {
-        const urlObj = new URL(url);
+        const urlObj = new URL(targetUrl);
         if (urlObj.hostname.includes('youtube.com')) {
           ytId = urlObj.searchParams.get('v');
         } else if (urlObj.hostname === 'youtu.be') {
@@ -108,8 +120,8 @@ export default function IngestPanel({ onIngestSuccess }) {
     }
     
     try {
-      const ingestResult = url 
-        ? await ingestVideo(url)
+      const ingestResult = targetUrl 
+        ? await ingestVideo(targetUrl)
         : await ingestFile(file, title || file.name);
       const isPreviewJob = ingestResult.status === 'processing' && Boolean(ingestResult.job_id);
 
