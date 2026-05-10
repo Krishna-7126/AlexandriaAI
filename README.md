@@ -229,7 +229,25 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) — YouTube audio extraction
 - [FastAPI](https://fastapi.tiangolo.com/) — Python web framework
 - [Vite + React](https://vitejs.dev/) — Frontend tooling
+---------------
 
+extesion 
+
+🟦 Frontend Layer
+User + Chrome Extension
+Handles interaction + data capture
+🟩 Backend Layer
+API Server
+Routes requests + manages logic
+🧠 AI Layer
+Processing Engine
+Analysis + embeddings + scoring
+🗄️ Data Layer
+Vector DB / Storage
+Stores processed content for retrieval
+⚡ Output Layer
+Q&A + Guidance
+Final user-facing intelligence
 ---
 
 <div align="center">
