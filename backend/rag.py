@@ -1,4 +1,3 @@
-import chromadb
 import os
 from .utils.similarity import keyword_similarity
 from .utils.transcript_store import get_chunks
@@ -8,6 +7,10 @@ from .utils.summary_helper import extractive_summary
 
 def _embeddings_enabled() -> bool:
     return os.getenv("ENABLE_EMBEDDINGS", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _chroma_enabled() -> bool:
+    return os.getenv("ENABLE_CHROMA", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _format_context(chunks):
@@ -27,13 +30,15 @@ def _build_answer_prompt(question, context, history):
             turns.append(f"Q: {item.get('question', '')}\nA: {item.get('answer', '')}")
         history_text = "\n\nPrevious conversation:\n" + "\n\n".join(turns)
     return (
-        "You are the AI Learning Companion. Answer only from the provided transcript context. "
-        "If the context does not contain the answer, say you could not find it in the video. "
-        "Keep the answer concise, human-like, and grounded in the transcript. Do not invent facts.\n\n"
-        f"Transcript context:\n{context}\n\n"
-        f"Question: {question}\n"
+        "You are Alexandria, an intelligent AI video learning companion. "
+        "Your role is to answer questions about a video using only the provided transcript context. "
+        "Write a clear, well-structured answer in fluent, natural English. "
+        "If the transcript context contains the answer, summarize it accurately and concisely. "
+        "If you cannot find the answer in the transcript, politely say so—do not guess or invent facts.\n\n"
+        f"TRANSCRIPT CONTEXT:\n{context}\n\n"
+        f"QUESTION: {question}\n"
         f"{history_text}\n\n"
-        "Answer with a short paragraph."
+        "ANSWER (2-4 clear sentences in fluent English):"
     )
 
 
@@ -59,13 +64,17 @@ def _coerce_warnings(value):
 
 def ask_question(video_id, question, history=[]):
     try:
-        client = chromadb.PersistentClient(path="./chroma_db")
-        collection = client.get_collection(name="transcripts")
-        results = collection.get(where={"video_id": video_id})
-        if not results['ids']:
-            raise Exception("No data found")
-        texts = results['metadatas']
-        embeddings = results.get('embeddings')
+        if _chroma_enabled():
+            import chromadb
+            client = chromadb.PersistentClient(path="./chroma_db")
+            collection = client.get_collection(name="transcripts")
+            results = collection.get(where={"video_id": video_id})
+            if not results['ids']:
+                raise Exception("No data found")
+            texts = results['metadatas']
+            embeddings = results.get('embeddings')
+        else:
+            raise Exception("Chroma persistence disabled")
     except Exception as e:
         print(f"ChromaDB failed: {e}, using fallback")
         texts = get_chunks(video_id)
@@ -154,7 +163,7 @@ def ask_question(video_id, question, history=[]):
         quality_guidance = _build_quality_guidance(quality_score, quality_warnings)
         prompt = f"{quality_guidance}\n\n{prompt}"
         try:
-            answer = generate_text(prompt, temperature=0.2, max_output_tokens=256)
+            answer = generate_text(prompt, temperature=0.3, max_output_tokens=400)
         except Exception as e:
             print(f"Gemini QA failed: {e}")
 

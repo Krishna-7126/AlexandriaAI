@@ -35,12 +35,12 @@ const VideoPlayer = forwardRef(({ videoId }, ref) => {
   }
 
   return (
-    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', height: '400px', aspectRatio: '16/9', display: 'flex' }}>
+    <div style={{ width: '100%', height: 'auto', aspectRatio: '16/9', display: 'flex', background: '#000' }}>
       <YouTube 
         videoId={videoId} 
         opts={opts} 
         onReady={onReady} 
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', display: 'block' }}
       />
     </div>
   );

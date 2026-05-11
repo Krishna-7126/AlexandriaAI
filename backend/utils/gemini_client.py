@@ -1,9 +1,19 @@
 import os
 
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
+genai = None
+_genai_import_attempted = False
+
+
+def _get_genai():
+    global genai, _genai_import_attempted
+    if not _genai_import_attempted:
+        _genai_import_attempted = True
+        try:
+            import google.generativeai as imported_genai
+            genai = imported_genai
+        except ImportError:
+            genai = None
+    return genai
 
 
 def _get_api_key() -> str | None:
@@ -13,21 +23,22 @@ def _get_api_key() -> str | None:
 def heavy_ai_enabled() -> bool:
     value = os.getenv("ENABLE_GEMINI")
     if value is None:
-        return True
-    return value.strip().lower() not in {"0", "false", "no", "off"}
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def gemini_available() -> bool:
-    return genai is not None and bool(_get_api_key()) and heavy_ai_enabled()
+    return bool(_get_api_key()) and heavy_ai_enabled() and _get_genai() is not None
 
 
 def _configure_model():
     api_key = _get_api_key()
-    if not genai or not api_key:
+    genai_module = _get_genai()
+    if not genai_module or not api_key:
         return None
-    genai.configure(api_key=api_key)
+    genai_module.configure(api_key=api_key)
     model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    return genai.GenerativeModel(model_name)
+    return genai_module.GenerativeModel(model_name)
 
 
 def generate_text(prompt: str, *, temperature: float = 0.2, max_output_tokens: int = 512) -> str | None:

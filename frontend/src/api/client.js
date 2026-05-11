@@ -1,16 +1,23 @@
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-export async function ingestVideo(videoUrl) {
-  const response = await fetch(`${API_BASE}/ingest`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ video_url: videoUrl })
-  });
-  const result = await response.json();
+async function parseResponse(response, fallbackMessage) {
+  const result = await response.json().catch(() => ({}));
   if (response.ok) {
     return result;
-  } else {
-    throw new Error(result.detail || result.message || 'Failed to ingest video');
+  }
+  throw new Error(result.detail || result.message || fallbackMessage);
+}
+
+export async function ingestVideo(videoUrl) {
+  try {
+    const response = await fetch(`${API_BASE}/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_url: videoUrl })
+    });
+    return await parseResponse(response, 'Failed to ingest video');
+  } catch (error) {
+    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`);
   }
 }
 
@@ -21,15 +28,56 @@ export async function ingestFile(file, title = '') {
     formData.append('title', title);
   }
 
-  const response = await fetch(`${API_BASE}/ingest-file`, {
-    method: 'POST',
-    body: formData,
-  });
-  const result = await response.json();
-  if (response.ok) {
-    return result;
+  try {
+    const response = await fetch(`${API_BASE}/ingest-file`, {
+      method: 'POST',
+      body: formData,
+    });
+    return await parseResponse(response, 'Failed to ingest file');
+  } catch (error) {
+    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`);
   }
-  throw new Error(result.detail || result.message || 'Failed to ingest file');
+}
+
+export async function getIngestStatus(jobId) {
+  const response = await fetch(`${API_BASE}/ingest-status/${jobId}`);
+  return await parseResponse(response, 'Failed to get ingest status');
+}
+
+export async function getAnalysis(videoId) {
+  const response = await fetch(`${API_BASE}/analysis/${videoId}`);
+  if (response.ok) {
+    return await response.json();
+  }
+
+  if (response.status !== 404) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.detail || result.message || 'Failed to get analysis');
+  }
+
+  const [overall, topics, recent, timestamps, quality] = await Promise.all([
+    getOverallSummary(videoId).catch(() => null),
+    getTopicSummaries(videoId).catch(() => null),
+    getLastMinutesSummary(videoId, 5).catch(() => null),
+    getTimestamps(videoId).catch(() => null),
+    getQuality(videoId).catch(() => null),
+  ]);
+
+  const summary = overall?.summary || 'Summary is not available yet. Please ingest a video first.';
+  const topicList = Array.isArray(topics?.topics) ? topics.topics : [];
+  const timestampList = Array.isArray(timestamps?.timestamps) ? timestamps.timestamps : [];
+  const ready = !summary.startsWith('Summary is not available yet') || topicList.length > 0 || timestamps?.status === 'success';
+
+  return {
+    video_id: videoId,
+    summary,
+    topics: topicList,
+    recent_summary: recent?.summary,
+    recent_timestamp: recent?.timestamp,
+    timestamps: timestampList,
+    quality: quality?.quality,
+    status: ready ? 'success' : 'processing',
+  };
 }
 
 export async function getOverallSummary(videoId) {

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Video, Loader2, CheckCircle, AlertCircle, Upload } from 'lucide-react';
-import { ingestVideo, ingestFile } from '../api/client';
+import React, { useState, useEffect, useRef } from 'react';
+import { Video, ArrowRight, Loader2, CheckCircle, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
+import { ingestVideo, ingestFile, getIngestStatus } from '../api/client';
+import SkeletonLoader from './SkeletonLoader';
 
 export default function IngestPanel({ onIngestSuccess }) {
-  const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState('');
@@ -11,37 +11,127 @@ export default function IngestPanel({ onIngestSuccess }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [result, setResult] = useState(null);
+  const [statusMessage, setStatusMessage] = useState('');
 
-  const handleIngest = async (e) => {
-    e.preventDefault();
-    if (mode === 'url' && !url) return;
-    if (mode === 'file' && !file) return;
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [startTime, setStartTime] = useState(null);
+
+  // Stable ref so useEffect can call handleIngest without stale closure
+  const handleIngestRef = useRef(null);
+
+
+  const waitForJobCompletion = async (jobId) => {
+    const maxAttempts = 180;
+    setStartTime(Date.now());
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const job = await getIngestStatus(jobId);
+      
+      // Extract progress info
+      const step = job.step || 0;
+      const stepName = job.step_name || `Processing... (${attempt + 1}/${maxAttempts})`;
+      const progressPercent = job.progress || Math.min(15 + (attempt * 0.5), 95);
+      
+      setCurrentStep(stepName);
+      setProgress(progressPercent);
+      
+      // Calculate and show time estimate
+      if (startTime && attempt > 3) {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const estimatedPercent = Math.max(progressPercent, 15);
+        const estimatedTotal = (elapsed / (estimatedPercent / 100));
+        const remaining = Math.max(0, estimatedTotal - elapsed);
+        
+        if (remaining > 5) {
+          setStatusMessage(`${stepName} - Est. ${Math.ceil(remaining)}s remaining...`);
+        } else {
+          setStatusMessage(stepName);
+        }
+      } else {
+        setStatusMessage(stepName);
+      }
+      
+      if (job.status === 'completed' || job.status === 'failed') {
+        return job;
+      }
+      
+      await sleep(500); // Poll faster for better UX
+    }
+    throw new Error('Ingest is taking longer than expected. Please check again in a moment.');
+  };
+
+  const startBackgroundMonitoring = async (jobId, ytId) => {
+    try {
+      const jobResult = await waitForJobCompletion(jobId);
+      if (jobResult.status === 'failed') {
+        throw new Error(jobResult.message || 'Ingest failed');
+      }
+
+      const finalInfo = {
+        ...(jobResult.result || {}),
+        status: 'completed',
+        job_id: jobResult.job_id,
+        video_id: jobResult.video_id,
+      };
+
+      setSuccess(true);
+      setResult(finalInfo);
+      setStatusMessage('Transcript ready. Final summary is refreshing now...');
+      onIngestSuccess(jobResult.video_id, ytId, finalInfo);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIngest = async (e, explicitUrl = null) => {
+    if (e) e.preventDefault();
+    const targetUrl = explicitUrl || url;
+    if (!targetUrl && !file) return;
     
     setLoading(true);
     setError('');
     setSuccess(false);
+    setStatusMessage('');
+
+    let ytId = null;
+    if (targetUrl) {
+      try {
+        const urlObj = new URL(targetUrl);
+        if (urlObj.hostname.includes('youtube.com')) {
+          ytId = urlObj.searchParams.get('v');
+        } else if (urlObj.hostname === 'youtu.be') {
+          ytId = urlObj.pathname.slice(1);
+        }
+      } catch (e) {
+        console.warn('Could not parse YouTube ID');
+      }
+    }
     
     try {
-      const ingestResult = mode === 'url'
-        ? await ingestVideo(url)
+      const ingestResult = targetUrl 
+        ? await ingestVideo(targetUrl)
         : await ingestFile(file, title || file.name);
+      const isPreviewJob = ingestResult.status === 'processing' && Boolean(ingestResult.job_id);
+
+      if (isPreviewJob) {
+        setSuccess(true);
+        const previewInfo = {
+          ...ingestResult,
+          status: 'processing',
+          preview: true,
+        };
+        setResult(previewInfo);
+        setStatusMessage(`Preview ready in seconds. Final processing continues in the background... job ${ingestResult.job_id.slice(0, 8)}`);
+        onIngestSuccess(ingestResult.video_id, ytId, previewInfo);
+        void startBackgroundMonitoring(ingestResult.job_id, ytId);
+        return;
+      }
+
       setSuccess(true);
       setResult(ingestResult);
-      
-      // Extract YouTube ID from URL
-      let ytId = null;
-      if (mode === 'url') {
-        try {
-          const urlObj = new URL(url);
-          if (urlObj.hostname.includes('youtube.com')) {
-            ytId = urlObj.searchParams.get('v');
-          } else if (urlObj.hostname === 'youtu.be') {
-            ytId = urlObj.pathname.slice(1);
-          }
-        } catch (e) {
-          console.warn('Could not parse YouTube ID');
-        }
-      }
       
       onIngestSuccess(ingestResult.video_id, ytId, ingestResult);
     } catch (err) {
@@ -51,81 +141,177 @@ export default function IngestPanel({ onIngestSuccess }) {
     }
   };
 
-  const hasRealTranscript = result && !['youtube_metadata', 'url_only'].includes(result.source);
+  // Keep the ref always pointing at the latest handleIngest so extension auto-submit works
+  handleIngestRef.current = handleIngest;
+
+  // Auto-submit if the app was opened from the Chrome extension with a ?url= param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get('url');
+    if (urlParam) {
+      setUrl(urlParam);
+      // Small delay so React state has settled before we call ingest
+      setTimeout(() => {
+        if (handleIngestRef.current) {
+          handleIngestRef.current(null, urlParam);
+        }
+      }, 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setUrl(''); // Clear URL if file is selected
+    }
+  };
 
   return (
-    <div className="glass-panel" style={{ marginBottom: '1.5rem' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-        <Video color="var(--accent-color)" /> Load Video
-      </h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-        Analyze a YouTube URL or upload a local video/audio file.
-      </p>
-
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button type="button" onClick={() => setMode('url')} style={{ opacity: mode === 'url' ? 1 : 0.7 }}>
-          YouTube URL
-        </button>
-        <button type="button" onClick={() => setMode('file')} style={{ opacity: mode === 'file' ? 1 : 0.7 }}>
-          <Upload size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} /> File Upload
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Search Bar Style Input */}
+      <div className="glass-panel" style={{ 
+        padding: '0.4rem', 
+        borderRadius: '999px', 
+        display: 'flex', 
+        alignItems: 'center',
+        gap: '0.5rem',
+        background: '#ffffff',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.05)',
+        border: '1px solid rgba(0, 0, 0, 0.05)'
+      }}>
+        <div style={{ padding: '0 1.25rem', color: '#9ca3af' }}>
+          <Video size={24} />
+        </div>
+        <input 
+          type="text" 
+          value={url} 
+          onChange={(e) => {setUrl(e.target.value); setFile(null);}} 
+          placeholder="Paste a video link or upload a video" 
+          disabled={loading}
+          style={{ 
+            flex: 1, 
+            border: 'none', 
+            background: 'transparent', 
+            color: '#1e293b',
+            fontSize: '1.25rem',
+            boxShadow: 'none',
+            padding: '1rem 0',
+            fontWeight: 500
+          }}
+        />
+        <button 
+          onClick={handleIngest}
+          disabled={loading || (!url && !file)}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: '#10b981',
+            color: '#fff',
+            width: '80px',
+            height: '60px',
+            borderRadius: '999px',
+            padding: 0
+          }}
+        >
+          {loading ? <Loader2 className="animate-spin" size={24} /> : <ArrowRight size={28} />}
         </button>
       </div>
-      
-      <form onSubmit={handleIngest} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        {mode === 'url' ? (
-          <input 
-            type="text" 
-            value={url} 
-            onChange={(e) => setUrl(e.target.value)} 
-            placeholder="https://www.youtube.com/watch?v=..." 
-            disabled={loading}
-            style={{ flex: 1 }}
-          />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-            <input
-              type="file"
-              accept="audio/*,video/*"
-              disabled={loading}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{ flex: 1 }}
-            />
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Optional title"
-              disabled={loading}
-              style={{ flex: 1 }}
-            />
-          </div>
-        )}
-        <button type="submit" disabled={loading || (mode === 'url' ? !url : !file)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {loading ? (
-            <><Loader2 className="animate-spin" size={18} /> Processing...</>
-          ) : (
-            'Analyze'
-          )}
-        </button>
-      </form>
 
-      {error && (
-        <div className="fade-in" style={{ marginTop: '1rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <AlertCircle size={16} /> {error}
+      {/* Sub-buttons Row */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+         <button style={{ background: '#ffffff', color: '#4b5563', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }} onClick={() => document.getElementById('file-input').click()}>
+            <Upload size={16} /> Upload
+         </button>
+         <button style={{ background: '#ffffff', color: '#4b5563', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <Copy size={16} /> YouTube Video Link
+         </button>
+         <button style={{ background: '#ffffff', color: '#4b5563', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px', padding: '0.8rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <Plus size={16} /> Other Links
+         </button>
+      </div>
+
+      <input 
+        id="file-input"
+        type="file" 
+        hidden 
+        onChange={handleFileChange}
+        accept="audio/*,video/*,application/pdf"
+      />
+
+      {file && !loading && (
+        <div className="fade-in glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-fixed)' }}>
+           <span style={{ fontWeight: 600 }}>Selected: {file.name}</span>
+           <button onClick={handleIngest} style={{ background: 'var(--primary)', color: '#fff' }}>Process File</button>
         </div>
       )}
-      
-      {success && (
-        <div className="fade-in" style={{ marginTop: '1rem', color: hasRealTranscript ? 'var(--success)' : '#fbbf24', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {hasRealTranscript ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-            {hasRealTranscript ? 'Video transcript processed successfully!' : 'Only video metadata was found. Q&A needs captions or uploaded audio/video.'}
+
+      {error && (
+        <div className="fade-in glass-panel" style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--error-container)' }}>
+          <AlertCircle size={18} /> {error}
+        </div>
+      )}
+
+      {statusMessage && !error && loading && (
+        <div className="fade-in glass-panel" style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: '0.75rem',
+          background: 'var(--surface-container-low)',
+          padding: '1.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: '#16e059' }} /> 
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              {statusMessage}
+            </span>
           </div>
-          {result && (
-            <small style={{ opacity: 0.85, color: 'var(--text-secondary)' }}>
-              ID: {result.video_id} • Source: {result.source || 'unknown'} • Chunks: {result.chunk_count ?? 0} • Words: {result.transcript_length ?? 0}
-            </small>
-          )}
+          
+          {/* Progress bar */}
+          <div style={{
+            width: '100%',
+            height: '8px',
+            background: '#333',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            marginTop: '0.5rem'
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${progress}%`,
+              background: 'linear-gradient(90deg, #16e059, #6ef585)',
+              borderRadius: '4px',
+              transition: 'width 0.3s ease',
+              boxShadow: '0 0 10px rgba(22, 224, 89, 0.5)'
+            }} />
+          </div>
+          
+          {/* Progress percentage */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.85rem',
+            color: '#aaa',
+            marginTop: '0.25rem'
+          }}>
+            <span>{currentStep}</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+        </div>
+      )}
+
+      {loading && !statusMessage && (
+        <div className="fade-in glass-panel" style={{ 
+          minHeight: '150px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          background: 'var(--surface-container-low)',
+          padding: '1.5rem'
+        }}>
+          <SkeletonLoader count={2} type="paragraph" />
         </div>
       )}
     </div>

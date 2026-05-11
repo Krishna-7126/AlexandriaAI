@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Clock } from 'lucide-react';
 import { askQuestionStream } from '../api/client';
 
-export default function ChatPanel({ videoId, onTimestampClick }) {
+export default function ChatPanel({ videoId, onTimestampClick, isProcessing = false }) {
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
@@ -104,8 +104,8 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
 
   return (
     <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', marginBottom: '1rem' }}>
-        <MessageSquare color="var(--accent-color)" /> Q&A Chat
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
+        <MessageSquare color="var(--primary)" /> Q&A Chat
       </h2>
       
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
@@ -118,19 +118,35 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
           chatHistory.map((msg) => {
             const isAi = msg.role === 'ai';
             const parsed = isAi ? splitAnswer(msg.content) : { note: '', body: msg.content };
+            const isStreaming = isAi && isAsking && !msg.content;
 
             return (
             <div key={msg.id} className="fade-in" style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              background: msg.role === 'user' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.08)',
-              padding: '1rem',
-              borderRadius: '12px',
-              borderBottomRightRadius: msg.role === 'user' ? '0' : '12px',
-              borderBottomLeftRadius: msg.role === 'ai' ? '0' : '12px',
+              background: msg.role === 'user' ? 'var(--primary)' : '#fff',
+              color: msg.role === 'user' ? 'var(--on-primary)' : 'var(--on-surface)',
+              padding: '1.25rem',
+              borderRadius: '1.5rem',
+              borderBottomRightRadius: msg.role === 'user' ? '0.25rem' : '1.5rem',
+              borderBottomLeftRadius: msg.role === 'ai' ? '0.25rem' : '1.5rem',
               maxWidth: '85%',
               lineHeight: 1.6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              boxShadow: '0 10px 20px -10px rgba(0,0,0,0.1)',
+              border: msg.role === 'ai' ? '1px solid var(--outline-variant)' : 'none'
             }}>
+              {isStreaming && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minWidth: '280px' }}>
+                  <div className="skeleton skeleton-line" style={{ width: '72%', height: '12px' }} />
+                  <div className="skeleton skeleton-line" style={{ width: '92%', height: '12px' }} />
+                  <div className="skeleton skeleton-line" style={{ width: '64%', height: '12px' }} />
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    Thinking...
+                  </div>
+                </div>
+              )}
               {parsed.note && (
                 <div style={{ marginBottom: '0.75rem', padding: '0.6rem 0.75rem', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.85rem' }}>
                   {parsed.note}
@@ -148,9 +164,9 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
                       style={{
                         padding: '0.25rem 0.5rem',
                         fontSize: '0.75rem',
-                        background: 'rgba(139, 92, 246, 0.2)',
-                        border: '1px solid rgba(139, 92, 246, 0.4)',
-                        color: 'var(--accent-hover)',
+                        background: 'var(--primary-fixed)',
+                        border: '1px solid var(--primary-fixed-dim)',
+                        color: 'var(--on-primary-fixed-variant)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.25rem',
@@ -174,9 +190,9 @@ export default function ChatPanel({ videoId, onTimestampClick }) {
           type="text" 
           value={question} 
           onChange={(e) => setQuestion(e.target.value)} 
-          placeholder="Ask a question..." 
+          placeholder={isProcessing ? 'Ask now; answers improve as transcript finishes...' : 'Ask a question...'} 
           disabled={!videoId || isAsking}
-          style={{ flex: 1, borderRadius: '24px', paddingLeft: '1.25rem' }}
+          style={{ flex: 1, borderRadius: '24px', paddingLeft: '1.25rem', background: 'var(--surface-container-lowest)' }}
         />
         <button 
           type="submit" 

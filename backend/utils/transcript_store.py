@@ -4,7 +4,7 @@ _fallback_store = defaultdict(list)
 
 
 def store_chunks(video_id, chunks):
-    _fallback_store[video_id].extend(chunks)
+    _fallback_store[video_id] = list(chunks)
 
 
 def get_chunks(video_id):

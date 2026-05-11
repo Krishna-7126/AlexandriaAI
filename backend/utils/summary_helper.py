@@ -1,4 +1,5 @@
 import re
+import html
 from typing import List, Tuple
 from .gemini_client import generate_text, gemini_available
 
@@ -8,11 +9,19 @@ _STOPWORDS = {
 }
 
 
+def _clean_text_fragment(text: str) -> str:
+    text = html.unescape(str(text or ""))
+    text = re.sub(r"<\d{2}:\d{2}:\d{2}\.\d{3}>", " ", text)
+    text = re.sub(r"</?c(?:\.[^>]*)?>", " ", text)
+    text = re.sub(r"</?[^>]+>", " ", text)
+    text = re.sub(r"\{\\an\d+\}", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" -")
+    return text
+
+
 def extractive_summary(text: str, num_sentences: int = 3) -> str:
     """Return an extractive summary of `text` by scoring sentences with word frequencies."""
-    if not text or len(text.split()) < 30:
-        return text.strip()
-
+    text = _clean_text_fragment(text)
     # Split into sentences / lines and remove duplicates while preserving order
     raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+|\n+', text) if s.strip()]
     sentences = []
@@ -25,6 +34,8 @@ def extractive_summary(text: str, num_sentences: int = 3) -> str:
         sentences.append(sentence)
     if not sentences:
         return text.strip()
+    if len(text.split()) < 30:
+        return ' '.join(sentences[:num_sentences]).strip()
 
     # Build word frequency
     freq = {}
@@ -65,11 +76,12 @@ def _chunk_context(chunks: List[dict], limit: int = 12) -> str:
     for chunk in chunks[:limit]:
         start = chunk.get('start', 0)
         end = chunk.get('end', 0)
-        parts.append(f"({start:.2f}-{end:.2f}s) {chunk.get('text', '').strip()}")
+        parts.append(f"({start:.2f}-{end:.2f}s) {_clean_text_fragment(chunk.get('text', '').strip())}")
     return "\n".join(parts)
 
 def extract_topics(text: str, num_topics: int = 5) -> List[str]:
     """Extract key topics from text using simple heuristics."""
+    text = _clean_text_fragment(text)
     sentences = re.split(r'[.!?]+', text)
     sentences = [s.strip() for s in sentences if len(s.strip()) > 20]
     topics = []
@@ -90,16 +102,18 @@ def summarize_by_topics(text: str, chunks: List[dict]) -> List[dict]:
     """Create topic-wise summaries from chunks."""
     if not chunks:
         return []
+    text = _clean_text_fragment(text)
     topics = extract_topics(text, num_topics=5)
     result = []
     for i, topic in enumerate(topics):
         relevant_chunks = []
         for chunk in chunks:
-            chunk_text = chunk.get('text', '').lower()
+            chunk_text = _clean_text_fragment(chunk.get('text', '')).lower()
             if any(word in chunk_text for word in topic.lower().split()[:2]):
                 relevant_chunks.append(chunk)
         if relevant_chunks:
-            summary_text = ' '.join([c.get('text', '')[:150] for c in relevant_chunks[:2]])
+            relevant_text = " ".join([_clean_text_fragment(c.get('text', '')) for c in relevant_chunks[:4]])
+            summary_text = extractive_summary(relevant_text, num_sentences=2) or relevant_text[:220]
             if gemini_available():
                 prompt = (
                     "Summarize the following transcript snippets as a short topic summary. "
@@ -131,7 +145,7 @@ def get_last_n_minutes_summary(chunks: List[dict], minutes: int = 5) -> Tuple[st
         if c.get('end', 0) > start_time
     ]
     if relevant_chunks:
-        summary_text = ' '.join([c.get('text', '') for c in relevant_chunks])
+        summary_text = extractive_summary(" ".join([_clean_text_fragment(c.get('text', '')) for c in relevant_chunks]), num_sentences=3)
         if gemini_available():
             prompt = (
                 f"Summarize the last {minutes} minutes of this transcript in 2-4 sentences. "
@@ -145,7 +159,8 @@ def get_last_n_minutes_summary(chunks: List[dict], minutes: int = 5) -> Tuple[st
             except Exception:
                 pass
         return (summary_text[:500], relevant_chunks[0].get('start', end_time))
-    return (' '.join([c.get('text', '') for c in chunks[-3:]]), end_time - 300)
+    fallback_text = " ".join([_clean_text_fragment(c.get('text', '')) for c in chunks[-3:]])
+    return (extractive_summary(fallback_text, num_sentences=2) or fallback_text, end_time - 300)
 
 def format_timestamp(seconds: float) -> str:
     """Format seconds to HH:MM:SS."""
