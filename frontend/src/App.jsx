@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Leaf, BrainCircuit, Mic, FileText, Layout, ArrowRight, Link as LinkIcon, Image as ImageIcon, File as FileIcon } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { BrainCircuit, FileText, Layout, ArrowRight } from 'lucide-react';
 import Navbar from './components/Navbar';
 import IngestPanel from './components/IngestPanel';
 import VideoPlayer from './components/VideoPlayer';
@@ -238,7 +238,7 @@ function App() {
 
               {/* Right Column: Chat */}
               <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 150px)', minWidth: 0, position: 'sticky', top: '100px' }}>
-                <ChatPanel videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
               </div>
             </div>
           </section>
@@ -268,4 +268,3 @@ function App() {
 }
 
 export default App;
-

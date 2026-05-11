@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Clock } from 'lucide-react';
 import { askQuestionStream } from '../api/client';
 
@@ -6,7 +6,7 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
-  const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
+  const [sessionId] = useState(() => `session_${Date.now()}`);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -16,13 +16,6 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
-
-  useEffect(() => {
-    setChatHistory([]);
-    setQuestion('');
-    setIsAsking(false);
-    setSessionId(`session_${Date.now()}`);
-  }, [videoId]);
 
   const handleAsk = async (e) => {
     e.preventDefault();

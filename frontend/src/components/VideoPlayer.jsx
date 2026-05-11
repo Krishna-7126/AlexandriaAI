@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle } from 'react';
 import YouTube from 'react-youtube';
 
 const VideoPlayer = forwardRef(({ videoId }, ref) => {

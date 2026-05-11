@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Clock, Loader2 } from 'lucide-react';
 import { getAnalysis } from '../api/client';
 
@@ -12,9 +12,9 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
 
     const requestId = ++requestSeq.current;
     let stopped = false;
-    setTimestamps([]);
 
     const fetchTimeline = async () => {
+      setTimestamps([]);
       setLoading(true);
       try {
         const data = await getAnalysis(videoId);

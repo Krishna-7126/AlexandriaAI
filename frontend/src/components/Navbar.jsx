@@ -1,4 +1,4 @@
-import React from 'react';
+
 import customLogo from '../assets/logo.png';
 
 export default function Navbar() {

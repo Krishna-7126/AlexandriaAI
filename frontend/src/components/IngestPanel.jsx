@@ -1,35 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Video, ArrowRight, Loader2, CheckCircle, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Video, ArrowRight, Loader2, AlertCircle, Upload, Copy, Plus } from 'lucide-react';
 import { ingestVideo, ingestFile, getIngestStatus } from '../api/client';
 import SkeletonLoader from './SkeletonLoader';
 
 export default function IngestPanel({ onIngestSuccess }) {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('url') || '';
+  });
   const [file, setFile] = useState(null);
-  const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [result, setResult] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
 
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
-  const [startTime, setStartTime] = useState(null);
 
   // Stable ref so useEffect can call handleIngest without stale closure
   const handleIngestRef = useRef(null);
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const waitForJobCompletion = async (jobId) => {
+  const waitForJobCompletion = useCallback(async (jobId) => {
     const maxAttempts = 180;
-    setStartTime(Date.now());
+    const start = Date.now();
     
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const job = await getIngestStatus(jobId);
       
       // Extract progress info
-      const step = job.step || 0;
       const stepName = job.step_name || `Processing... (${attempt + 1}/${maxAttempts})`;
       const progressPercent = job.progress || Math.min(15 + (attempt * 0.5), 95);
       
@@ -37,8 +36,8 @@ export default function IngestPanel({ onIngestSuccess }) {
       setProgress(progressPercent);
       
       // Calculate and show time estimate
-      if (startTime && attempt > 3) {
-        const elapsed = (Date.now() - startTime) / 1000;
+      if (attempt > 3) {
+        const elapsed = (Date.now() - start) / 1000;
         const estimatedPercent = Math.max(progressPercent, 15);
         const estimatedTotal = (elapsed / (estimatedPercent / 100));
         const remaining = Math.max(0, estimatedTotal - elapsed);
@@ -59,9 +58,9 @@ export default function IngestPanel({ onIngestSuccess }) {
       await sleep(500); // Poll faster for better UX
     }
     throw new Error('Ingest is taking longer than expected. Please check again in a moment.');
-  };
+  }, []);
 
-  const startBackgroundMonitoring = async (jobId, ytId) => {
+  const startBackgroundMonitoring = useCallback(async (jobId, ytId) => {
     try {
       const jobResult = await waitForJobCompletion(jobId);
       if (jobResult.status === 'failed') {
@@ -75,8 +74,6 @@ export default function IngestPanel({ onIngestSuccess }) {
         video_id: jobResult.video_id,
       };
 
-      setSuccess(true);
-      setResult(finalInfo);
       setStatusMessage('Transcript ready. Final summary is refreshing now...');
       onIngestSuccess(jobResult.video_id, ytId, finalInfo);
     } catch (err) {
@@ -84,16 +81,15 @@ export default function IngestPanel({ onIngestSuccess }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [onIngestSuccess, waitForJobCompletion]);
 
-  const handleIngest = async (e, explicitUrl = null) => {
+  const handleIngest = useCallback(async (e, explicitUrl = null) => {
     if (e) e.preventDefault();
     const targetUrl = explicitUrl || url;
     if (!targetUrl && !file) return;
     
     setLoading(true);
     setError('');
-    setSuccess(false);
     setStatusMessage('');
 
     let ytId = null;
@@ -105,7 +101,7 @@ export default function IngestPanel({ onIngestSuccess }) {
         } else if (urlObj.hostname === 'youtu.be') {
           ytId = urlObj.pathname.slice(1);
         }
-      } catch (e) {
+      } catch {
         console.warn('Could not parse YouTube ID');
       }
     }
@@ -113,43 +109,39 @@ export default function IngestPanel({ onIngestSuccess }) {
     try {
       const ingestResult = targetUrl 
         ? await ingestVideo(targetUrl)
-        : await ingestFile(file, title || file.name);
+        : await ingestFile(file, file.name);
       const isPreviewJob = ingestResult.status === 'processing' && Boolean(ingestResult.job_id);
 
       if (isPreviewJob) {
-        setSuccess(true);
         const previewInfo = {
           ...ingestResult,
           status: 'processing',
           preview: true,
         };
-        setResult(previewInfo);
         setStatusMessage(`Preview ready in seconds. Final processing continues in the background... job ${ingestResult.job_id.slice(0, 8)}`);
         onIngestSuccess(ingestResult.video_id, ytId, previewInfo);
         void startBackgroundMonitoring(ingestResult.job_id, ytId);
         return;
       }
 
-      setSuccess(true);
-      setResult(ingestResult);
-      
       onIngestSuccess(ingestResult.video_id, ytId, ingestResult);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [file, onIngestSuccess, startBackgroundMonitoring, url]);
 
   // Keep the ref always pointing at the latest handleIngest so extension auto-submit works
-  handleIngestRef.current = handleIngest;
+  useEffect(() => {
+    handleIngestRef.current = handleIngest;
+  }, [handleIngest]);
 
   // Auto-submit if the app was opened from the Chrome extension with a ?url= param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlParam = params.get('url');
     if (urlParam) {
-      setUrl(urlParam);
       // Small delay so React state has settled before we call ingest
       setTimeout(() => {
         if (handleIngestRef.current) {
@@ -157,7 +149,6 @@ export default function IngestPanel({ onIngestSuccess }) {
         }
       }, 300);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileChange = (e) => {

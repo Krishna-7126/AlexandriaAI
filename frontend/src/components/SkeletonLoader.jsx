@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function SkeletonLoader({ count = 3, type = 'paragraph' }) {
   if (type === 'paragraph') {
     return (

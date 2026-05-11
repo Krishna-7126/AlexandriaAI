@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlignLeft, List, History, Loader2, PlayCircle, Star } from 'lucide-react';
 import { getAnalysis } from '../api/client';
 
@@ -16,14 +16,14 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
 
     const requestId = ++requestSeq.current;
     let stopped = false;
-    setOverall(previewSummary || null);
-    setTopics(null);
-    setRecent(previewSummary || null);
-    setQuality(null);
-    setError('');
-    setLoading(!previewSummary);
 
     const fetchAnalysis = async () => {
+      setOverall(previewSummary || null);
+      setTopics(null);
+      setRecent(previewSummary || null);
+      setQuality(null);
+      setError('');
+      setLoading(!previewSummary);
       try {
         const data = await getAnalysis(videoId);
         if (stopped || requestSeq.current !== requestId) return 'stale';

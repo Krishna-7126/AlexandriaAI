@@ -17,7 +17,7 @@ export async function ingestVideo(videoUrl) {
     });
     return await parseResponse(response, 'Failed to ingest video');
   } catch (error) {
-    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`);
+    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`, { cause: error });
   }
 }
 
@@ -35,7 +35,7 @@ export async function ingestFile(file, title = '') {
     });
     return await parseResponse(response, 'Failed to ingest file');
   } catch (error) {
-    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`);
+    throw new Error(`Backend unreachable at ${API_BASE}. Start the API server and try again.`, { cause: error });
   }
 }
 
@@ -151,7 +151,7 @@ export async function askQuestionStream(videoId, question, sessionId, onChunk, o
           if (json.timestamps && json.timestamps.length > 0) {
             onTimestamps(json.timestamps);
           }
-        } catch (e) {
+        } catch {
           console.warn('Failed to parse NDJSON line:', line);
         }
       }
@@ -161,7 +161,7 @@ export async function askQuestionStream(videoId, question, sessionId, onChunk, o
         const json = JSON.parse(buffer);
         if (json.chunk) onChunk(json.chunk);
         if (json.timestamps && json.timestamps.length > 0) onTimestamps(json.timestamps);
-      } catch (e) {
+      } catch {
         console.warn('Failed to parse final NDJSON line:', buffer);
       }
     }
