@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlignLeft, List, History, Loader2, PlayCircle, Star } from 'lucide-react';
+import { AlignLeft, List, History, Loader2, PlayCircle, Star, Sparkles, Target, BrainCircuit } from 'lucide-react';
 import { getAnalysis } from '../api/client';
 
 export default function SummaryDashboard({ videoId, onTimestampClick, isProcessing = false, previewTitle = '', previewSummary = '' }) {
@@ -7,6 +7,10 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
   const [topics, setTopics] = useState(null);
   const [recent, setRecent] = useState(null);
   const [quality, setQuality] = useState(null);
+  const [educationalScore, setEducationalScore] = useState(0);
+  const [teachingMode, setTeachingMode] = useState('mixed');
+  const [learningObjectives, setLearningObjectives] = useState([]);
+  const [keyConcepts, setKeyConcepts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const requestSeq = useRef(0);
@@ -22,6 +26,10 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
       setTopics(null);
       setRecent(previewSummary || null);
       setQuality(null);
+        setEducationalScore(0);
+        setTeachingMode('mixed');
+        setLearningObjectives([]);
+        setKeyConcepts([]);
       setError('');
       setLoading(!previewSummary);
       try {
@@ -37,6 +45,10 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
         if (Array.isArray(data.topics)) setTopics(data.topics);
         if (data.recent_summary && data.recent_summary !== 'No content available') setRecent(data.recent_summary);
         if (data.quality) setQuality(data.quality);
+        if (Array.isArray(data.learning_objectives)) setLearningObjectives(data.learning_objectives);
+        if (Array.isArray(data.key_concepts)) setKeyConcepts(data.key_concepts);
+        if (typeof data.educational_score === 'number') setEducationalScore(data.educational_score);
+        if (data.teaching_mode) setTeachingMode(data.teaching_mode);
         setLoading(data.status !== 'success');
         return data.status;
       } catch (err) {
@@ -68,6 +80,16 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatTimestamp = (item) => {
+    const raw = typeof item === 'number' ? item : (item?.time ?? item?.timestamp ?? 0);
+    return formatTime(Number(raw) || 0);
+  };
+
+  const jumpToTimestamp = (item) => {
+    const raw = typeof item === 'number' ? item : (item?.time ?? item?.timestamp ?? 0);
+    if (onTimestampClick) onTimestampClick(Number(raw) || 0);
   };
 
 
@@ -119,6 +141,41 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      <section className="fade-in glass-panel" style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+            <Sparkles size={14} /> Educational Intelligence
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>{educationalScore || 0}<span style={{ fontSize: '1rem', marginLeft: '0.25rem', color: 'var(--text-secondary)' }}>/100</span></div>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)' }}>{teachingMode ? `Teaching mode detected: ${teachingMode}` : 'Analyzing teaching style...'}</p>
+        </div>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+            <Target size={14} /> Learning Objectives
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            {(learningObjectives.length > 0 ? learningObjectives.slice(0, 3) : ['Waiting for intelligent objectives...']).map((item, index) => (
+              <div key={index} style={{ padding: '0.6rem 0.75rem', borderRadius: '0.8rem', background: 'var(--surface-container)', color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.45 }}>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+            <BrainCircuit size={14} /> Key Concepts
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            {(keyConcepts.length > 0 ? keyConcepts.slice(0, 3) : topics?.slice(0, 3).map((topic) => ({ name: topic.topic, timestamp: topic.timestamp })) || []).map((item, index) => (
+              <button key={index} type="button" onClick={() => jumpToTimestamp(item)} style={{ textAlign: 'left', background: 'var(--surface-container-low)', color: 'var(--text-primary)', border: '1px solid var(--outline-variant)', padding: '0.6rem 0.75rem', borderRadius: '0.8rem', boxShadow: 'none' }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.15rem' }}>{item.name || item.topic || 'Concept'}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTimestamp(item)}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {isProcessing && (previewTitle || previewSummary) && (
         <section className="fade-in glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>

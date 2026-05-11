@@ -47,7 +47,14 @@ export async function getIngestStatus(jobId) {
 export async function getAnalysis(videoId) {
   const response = await fetch(`${API_BASE}/analysis/${videoId}`);
   if (response.ok) {
-    return await response.json();
+    const data = await response.json();
+    return {
+      educational_score: data.educational_score ?? 0,
+      teaching_mode: data.teaching_mode ?? 'mixed',
+      learning_objectives: Array.isArray(data.learning_objectives) ? data.learning_objectives : [],
+      key_concepts: Array.isArray(data.key_concepts) ? data.key_concepts : [],
+      ...data,
+    };
   }
 
   if (response.status !== 404) {
@@ -76,6 +83,10 @@ export async function getAnalysis(videoId) {
     recent_timestamp: recent?.timestamp,
     timestamps: timestampList,
     quality: quality?.quality,
+    educational_score: 0,
+    teaching_mode: 'mixed',
+    learning_objectives: [],
+    key_concepts: [],
     status: ready ? 'success' : 'processing',
   };
 }

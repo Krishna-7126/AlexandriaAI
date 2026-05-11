@@ -88,6 +88,13 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const normalizeTimestamp = (ts) => {
+    if (typeof ts === 'number') return ts;
+    if (typeof ts === 'string') return Number(ts) || 0;
+    if (ts && typeof ts === 'object') return Number(ts.time ?? ts.timestamp ?? 0) || 0;
+    return 0;
+  };
+
   return (
     <div className="glass-panel">
       <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
@@ -101,7 +108,7 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
           {timestamps.map((ts, idx) => (
             <button
               key={idx}
-              onClick={() => onTimestampClick && onTimestampClick(ts.time)}
+              onClick={() => onTimestampClick && onTimestampClick(normalizeTimestamp(ts))}
               style={{
                 flexShrink: 0,
                 background: 'var(--surface-container)',
@@ -115,10 +122,10 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
               }}
             >
               <span style={{ fontSize: '0.8rem', color: 'var(--on-primary-fixed-variant)', marginBottom: '0.25rem', fontWeight: 600 }}>
-                {formatTime(ts.time)}
+                {formatTime(normalizeTimestamp(ts))}
               </span>
               <span style={{ fontSize: '0.9rem', textAlign: 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {ts.label}
+                {ts.label || ts.reason || 'Teaching moment'}
               </span>
             </button>
           ))}

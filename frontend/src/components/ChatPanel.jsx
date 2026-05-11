@@ -80,6 +80,13 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const normalizeTimestamp = (ts) => {
+    if (typeof ts === 'number') return ts;
+    if (typeof ts === 'string') return Number(ts) || 0;
+    if (ts && typeof ts === 'object') return Number(ts.time ?? ts.timestamp ?? 0) || 0;
+    return 0;
+  };
+
   const splitAnswer = (content) => {
     const lines = String(content || '').split('\n');
     const noteLines = [];
@@ -153,7 +160,7 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
                   {msg.timestamps.map((ts, idx) => (
                     <button 
                       key={idx}
-                      onClick={() => onTimestampClick && onTimestampClick(ts)}
+                      onClick={() => onTimestampClick && onTimestampClick(normalizeTimestamp(ts))}
                       style={{
                         padding: '0.25rem 0.5rem',
                         fontSize: '0.75rem',
@@ -166,7 +173,7 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
                         boxShadow: 'none'
                       }}
                     >
-                      <Clock size={12} /> {formatTime(ts)}
+                      <Clock size={12} /> {formatTime(normalizeTimestamp(ts))}
                     </button>
                   ))}
                 </div>
