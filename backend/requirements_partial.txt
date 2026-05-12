@@ -1,0 +1,26 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+# pydantic excluded here to avoid local Rust/MSVC build failures; install pydantic separately if needed
+# pydantic==2.8.2
+email-validator>=2.2.0
+youtube-transcript-api>=0.6.3
+google-generativeai>=0.8.3
+python-multipart==0.0.12
+yt-dlp>=2025.1.1
+python-dotenv==1.0.1
+sqlalchemy>=2.0.0
+sqlalchemy-utils>=0.41.0
+pyjwt>=2.8.0
+passlib>=1.7.4
+python-jose>=3.3.0
+cryptography>=41.0.0
+spotipy>=2.23.0
+notion-client>=0.29.0
+python-docx>=0.8.11
+assemblyai>=0.17.0
+chromadb>=0.3.21
+feedparser>=6.0.10
+numpy>=1.27.0
+scikit-learn>=1.3.0
+networkx>=3.1
+alembic>=1.11.0
