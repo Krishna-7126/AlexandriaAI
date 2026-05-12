@@ -7,6 +7,7 @@ from typing import Any
 from .gemini_client import generate_text, gemini_available
 from .summary_helper import extractive_summary
 from .transcript_store import get_chunks
+from .queue import cache_get as redis_cache_get, cache_set as redis_cache_set, enqueue_job, is_enabled as redis_enabled
 
 _analysis_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
 
@@ -248,6 +249,14 @@ def _build_analysis_prompt(chunks: list[dict[str, Any]]) -> str:
 
 
 def analyze_educational_content(video_id: str) -> dict[str, Any]:
+    # Try Redis cache first (if available)
+    try:
+        cached = redis_cache_get(f"v3:educational:{video_id}") if redis_enabled() else None
+    except Exception:
+        cached = None
+    if cached:
+        return cached
+
     chunks = _load_chunks(video_id)
     if not chunks:
         return {
@@ -288,68 +297,99 @@ def analyze_educational_content(video_id: str) -> dict[str, Any]:
         "transcript_length": len(transcript_text.split()),
         "chunk_count": len(chunks),
     }
-
+    # If an LLM is available, prefer background processing via Redis + RQ
     if gemini_available():
         try:
-            prompt = _build_analysis_prompt(chunks)
-            raw = generate_text(prompt, temperature=0.2, max_output_tokens=1200)
-            parsed = _coerce_json(raw or "")
-            if parsed:
-                analysis["status"] = "gemini"
-                analysis["educational_score"] = int(parsed.get("educational_score", analysis["educational_score"]) or analysis["educational_score"])
-                analysis["teaching_mode"] = str(parsed.get("teaching_mode", analysis["teaching_mode"]) or analysis["teaching_mode"])
-                analysis["audience_level"] = str(parsed.get("audience_level", analysis["audience_level"]) or analysis["audience_level"])
-
-                parsed_levels = parsed.get("summary_levels") if isinstance(parsed.get("summary_levels"), dict) else {}
-                for key in ("tldr", "eli5", "standard", "expert"):
-                    value = parsed_levels.get(key) if isinstance(parsed_levels, dict) else None
-                    if value:
-                        analysis["summary_levels"][key] = _clip(str(value), 1200)
-
-                objectives = parsed.get("learning_objectives")
-                if isinstance(objectives, list) and objectives:
-                    analysis["learning_objectives"] = [str(item).strip() for item in objectives if str(item).strip()][:8]
-
-                parsed_concepts = parsed.get("key_concepts")
-                if isinstance(parsed_concepts, list) and parsed_concepts:
-                    cleaned_concepts = []
-                    for item in parsed_concepts[:8]:
-                        if not isinstance(item, dict):
-                            continue
-                        cleaned_concepts.append(
-                            {
-                                "name": str(item.get("name", "")).strip() or "Concept",
-                                "timestamp": round(float(item.get("timestamp", 0) or 0), 3),
-                                "importance": float(item.get("importance", 0.5) or 0.5),
-                                "why_it_matters": _clip(str(item.get("why_it_matters", "")).strip(), 180),
-                            }
-                        )
-                    if cleaned_concepts:
-                        analysis["key_concepts"] = cleaned_concepts
-
-                parsed_timestamps = parsed.get("smart_timestamps")
-                if isinstance(parsed_timestamps, list) and parsed_timestamps:
-                    cleaned_timestamps = []
-                    for item in parsed_timestamps[:10]:
-                        if not isinstance(item, dict):
-                            continue
-                        cleaned_timestamps.append(
-                            {
-                                "timestamp": round(float(item.get("timestamp", 0) or 0), 3),
-                                "label": str(item.get("label", "")).strip() or "Teaching moment",
-                                "reason": _clip(str(item.get("reason", "")).strip(), 180),
-                            }
-                        )
-                    if cleaned_timestamps:
-                        analysis["smart_timestamps"] = cleaned_timestamps
-
-                guidance = parsed.get("qa_guidance")
-                if guidance:
-                    analysis["qa_guidance"] = _clip(str(guidance), 360)
+            # If Redis & RQ are enabled, enqueue a background job and return a queued status
+            if redis_enabled():
+                # enqueue background task to run full analysis and cache result
+                try:
+                    enqueue_job(__import__('backend.tasks', fromlist=['run_educational_analysis']).tasks.run_educational_analysis, video_id, transcript_text)
+                    analysis["status"] = "queued"
+                except Exception:
+                    # Fall back to immediate analysis if enqueue fails
+                    prompt = _build_analysis_prompt(chunks)
+                    raw = generate_text(prompt, temperature=0.2, max_output_tokens=1200)
+                    parsed = _coerce_json(raw or "")
+                    if parsed:
+                        analysis = _merge_parsed_into_analysis(analysis, parsed)
+                        analysis["status"] = "gemini"
+            else:
+                # No Redis: perform immediate LLM pass synchronously
+                prompt = _build_analysis_prompt(chunks)
+                raw = generate_text(prompt, temperature=0.2, max_output_tokens=1200)
+                parsed = _coerce_json(raw or "")
+                if parsed:
+                    analysis = _merge_parsed_into_analysis(analysis, parsed)
+                    analysis["status"] = "gemini"
         except Exception as exc:
             print(f"Educational analysis Gemini pass failed: {exc}")
 
+    # Cache the fallback analysis so UI has quick access
+    try:
+        redis_cache_set(f"v3:educational:{video_id}", analysis, ttl=60 * 30)
+    except Exception:
+        pass
+
     _analysis_cache[cache_key] = analysis
+    return analysis
+
+
+def _merge_parsed_into_analysis(analysis: dict, parsed: dict) -> dict:
+    """Helper to merge JSON-parsed LLM output into the analysis payload."""
+    try:
+        analysis["educational_score"] = int(parsed.get("educational_score", analysis.get("educational_score")) or analysis.get("educational_score"))
+        analysis["teaching_mode"] = str(parsed.get("teaching_mode", analysis.get("teaching_mode")) or analysis.get("teaching_mode"))
+        analysis["audience_level"] = str(parsed.get("audience_level", analysis.get("audience_level")) or analysis.get("audience_level"))
+
+        parsed_levels = parsed.get("summary_levels") if isinstance(parsed.get("summary_levels"), dict) else {}
+        for key in ("tldr", "eli5", "standard", "expert"):
+            value = parsed_levels.get(key) if isinstance(parsed_levels, dict) else None
+            if value:
+                analysis["summary_levels"][key] = _clip(str(value), 1200)
+
+        objectives = parsed.get("learning_objectives")
+        if isinstance(objectives, list) and objectives:
+            analysis["learning_objectives"] = [str(item).strip() for item in objectives if str(item).strip()][:8]
+
+        parsed_concepts = parsed.get("key_concepts")
+        if isinstance(parsed_concepts, list) and parsed_concepts:
+            cleaned_concepts = []
+            for item in parsed_concepts[:8]:
+                if not isinstance(item, dict):
+                    continue
+                cleaned_concepts.append(
+                    {
+                        "name": str(item.get("name", "")).strip() or "Concept",
+                        "timestamp": round(float(item.get("timestamp", 0) or 0), 3),
+                        "importance": float(item.get("importance", 0.5) or 0.5),
+                        "why_it_matters": _clip(str(item.get("why_it_matters", "")).strip(), 180),
+                    }
+                )
+            if cleaned_concepts:
+                analysis["key_concepts"] = cleaned_concepts
+
+        parsed_timestamps = parsed.get("smart_timestamps")
+        if isinstance(parsed_timestamps, list) and parsed_timestamps:
+            cleaned_timestamps = []
+            for item in parsed_timestamps[:10]:
+                if not isinstance(item, dict):
+                    continue
+                cleaned_timestamps.append(
+                    {
+                        "timestamp": round(float(item.get("timestamp", 0) or 0), 3),
+                        "label": str(item.get("label", "")).strip() or "Teaching moment",
+                        "reason": _clip(str(item.get("reason", "")).strip(), 180),
+                    }
+                )
+            if cleaned_timestamps:
+                analysis["smart_timestamps"] = cleaned_timestamps
+
+        guidance = parsed.get("qa_guidance")
+        if guidance:
+            analysis["qa_guidance"] = _clip(str(guidance), 360)
+    except Exception:
+        pass
     return analysis
 
 
