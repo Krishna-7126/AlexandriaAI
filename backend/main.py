@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from .middleware.rate_limiter import SimpleRateLimiter
 from pydantic import BaseModel
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -32,6 +33,9 @@ app = FastAPI(
     description="RAG-based video learning assistant for LMS",
     version="2.0.0"
 )
+
+# Add a simple rate limiter middleware (basic, per-IP)
+app.add_middleware(SimpleRateLimiter, calls=int(os.getenv("RATE_LIMIT_CALLS", "60")), period=int(os.getenv("RATE_LIMIT_PERIOD", "60")))
 
 # Include new feature routers
 app.include_router(auth_router)

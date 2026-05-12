@@ -15,40 +15,74 @@ def _get_genai():
             genai = None
     return genai
 
+import os
+import typing
+import importlib
 
-def _get_api_key() -> str | None:
-    return os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+_genai_impl = None
+_genai_checked = False
+
+
+def _detect_genai_impl():
+    global _genai_impl, _genai_checked
+    if _genai_checked:
+        return _genai_impl
+    _genai_checked = True
+    # Prefer new `google.genai` package, fall back to `google.generativeai` if present
+    try:
+        genai_new = importlib.import_module("google.genai")
+        _genai_impl = ("new", genai_new)
+        return _genai_impl
+    except Exception:
+        pass
+    try:
+        genai_old = importlib.import_module("google.generativeai")
+        _genai_impl = ("old", genai_old)
+        return _genai_impl
+    except Exception:
+        _genai_impl = None
+        return None
+
+
+def _get_api_key() -> typing.Optional[str]:
+    return os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GENAI_API_KEY")
 
 
 def heavy_ai_enabled() -> bool:
-    value = os.getenv("ENABLE_GEMINI")
+    value = os.getenv("ENABLE_GEMINI") or os.getenv("ENABLE_GENAI")
     if value is None:
         return False
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def gemini_available() -> bool:
-    return bool(_get_api_key()) and heavy_ai_enabled() and _get_genai() is not None
+    return bool(_get_api_key()) and heavy_ai_enabled() and _detect_genai_impl() is not None
 
 
-def _configure_model():
+def _configure_named_model(model_name: typing.Optional[str] = None):
+    impl = _detect_genai_impl()
     api_key = _get_api_key()
-    genai_module = _get_genai()
-    if not genai_module or not api_key:
+    if not impl or not api_key:
         return None
-    genai_module.configure(api_key=api_key)
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    return genai_module.GenerativeModel(model_name)
+    kind, module = impl
+    resolved_model = model_name or os.getenv("GEMINI_MODEL") or os.getenv("LLM_MODEL") or "text-bison-001"
 
+    if kind == "new":
+        # google.genai style
+        try:
+            # Client constructor may accept api_key or rely on env var
+            client = module.Client(api_key=api_key) if hasattr(module, "Client") else module
+            return ("new", client, resolved_model)
+        except Exception:
+            return None
 
-def _configure_named_model(model_name: str | None = None):
-    api_key = _get_api_key()
-    genai_module = _get_genai()
-    if not genai_module or not api_key:
+    # old google.generativeai
+    try:
+        module.configure(api_key=api_key)
+        model_obj = module.GenerativeModel(resolved_model)
+        return ("old", module, model_obj)
+    except Exception:
         return None
-    genai_module.configure(api_key=api_key)
-    resolved_model = model_name or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    return genai_module.GenerativeModel(resolved_model)
 
 
 def generate_text(
@@ -56,19 +90,44 @@ def generate_text(
     *,
     temperature: float = 0.2,
     max_output_tokens: int = 512,
-    model_name: str | None = None,
-) -> str | None:
-    model = _configure_named_model(model_name)
-    if model is None:
+    model_name: typing.Optional[str] = None,
+) -> typing.Optional[str]:
+    cfg = _configure_named_model(model_name)
+    if not cfg:
         return None
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "temperature": temperature,
-            "max_output_tokens": max_output_tokens,
-        },
-    )
-    text = getattr(response, "text", None)
-    if text:
-        return text.strip()
+    kind = cfg[0]
+    try:
+        if kind == "new":
+            # ("new", client, model_name)
+            _, client, model = cfg
+            # client.generate_text returns object with .text or string
+            try:
+                resp = client.generate_text(model=model, input=prompt, temperature=temperature, max_output_tokens=max_output_tokens)
+            except TypeError:
+                # fallback parameter names
+                resp = client.generate_text(model=model, prompt=prompt, temperature=temperature)
+
+            text = None
+            if hasattr(resp, "text"):
+                text = resp.text
+            elif isinstance(resp, dict):
+                text = resp.get("output") or resp.get("content") or resp.get("text")
+            elif isinstance(resp, str):
+                text = resp
+            return text.strip() if text else None
+
+        # old API
+        _, module, model_obj = cfg
+        response = model_obj.generate_content(
+            prompt,
+            generation_config={
+                "temperature": temperature,
+                "max_output_tokens": max_output_tokens,
+            },
+        )
+        text = getattr(response, "text", None)
+        if text:
+            return text.strip()
+    except Exception:
+        return None
     return None

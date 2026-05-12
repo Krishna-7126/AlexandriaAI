@@ -1,8 +1,7 @@
-"""
-Multi-language support for Alexandria
-"""
-import google.generativeai as genai
+"""Multi-language support for Alexandria"""
 import os
+import asyncio
+from .gemini_client import gemini_available, generate_text
 
 # Supported languages
 SUPPORTED_LANGUAGES = {
@@ -38,18 +37,16 @@ async def translate_content(content: str, target_language: str) -> str:
     if target_language not in SUPPORTED_LANGUAGES:
         return content
     
-    try:
-        model = genai.GenerativeModel("gemini-pro")
-        target_lang_name = SUPPORTED_LANGUAGES[target_language]
-        
-        prompt = f"""Translate the following text to {target_lang_name}. 
-Keep the meaning and context intact. Only return the translated text, nothing else.
+    if not gemini_available():
+        return content
 
-Text to translate:
-{content}"""
-        
-        response = model.generate_content(prompt)
-        return response.text
+    target_lang_name = SUPPORTED_LANGUAGES[target_language]
+    prompt = f"""Translate the following text to {target_lang_name}. Keep the meaning and context intact. Only return the translated text, nothing else.\n\nText to translate:\n{content}"""
+
+    try:
+        # generate_text is sync; run it in a thread to keep async signature
+        text = await asyncio.to_thread(generate_text, prompt, temperature=0.0, max_output_tokens=400)
+        return text or content
     except Exception as e:
         print(f"Translation error: {e}")
         return content
