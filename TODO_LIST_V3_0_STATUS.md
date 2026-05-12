@@ -1,0 +1,429 @@
+# TODO_LIST_V3_0.md Status Snapshot
+
+- Total checklist items: 413
+- Top-level done: 17
+- Top-level pending: 207
+- Nested done: 8
+- Nested pending: 181
+- Completion (top-level basis): 7.6%
+
+## Top-Level Done
+- [x] Educational content analysis layer for score, teaching mode, objectives, concepts, and smart timestamps
+- [x] Multi-level summaries now use educational analysis first
+- [x] Q&A now uses educational context and concept-aware prompting
+- [x] Q&A duplicate-request cache added so repeated questions reuse the last answer instead of re-calling the model
+- [x] Frontend now surfaces educational score, teaching mode, objectives, and key concepts
+- [x] Quiz generation endpoint added for concept-based practice
+- [x] Quiz lifecycle added: generate, get-next, submit, and performance endpoints
+- [x] Quiz panel added to the frontend for active recall practice
+- [x] v3 API router added with educational analysis, concepts, summaries, smart QA, objectives, difficulty, notes, analytics, personalization, compare, and review endpoints
+- [x] v3 helper modules expanded with heuristic implementations for educational detection, concept extraction, timestamping, summarization, RAG, and multi-pass analysis
+- [x] v3 endpoint tests added and passing
+- [x] Backend test slice passes with the new v3 routes in place
+- [x] Create `quiz_generator.py` with concept-based quiz generation and fallback flow
+- [x] Create `/v3/quiz/generate/{video_id}` endpoint
+- [x] Create `/v3/quiz/get-next` endpoint (spaced repetition algorithm)
+- [x] Create `/v3/quiz/submit` endpoint (check answer)
+- [x] Create `/v3/quiz/performance` endpoint (analytics)
+
+## Top-Level Pending
+- [ ] Create v3 feature branches
+- [ ] Set up new backend module structure
+- [ ] Create `backend/v3_features/` directory with:
+- [ ] Update requirements.txt with new dependencies:
+- [ ] Create `.env` variables for v3:
+- [ ] Set up database migrations for new tables
+- [ ] Create unit test structure
+- [ ] Create `education_detector.py` with functions:
+- [ ] Create Gemini prompt templates:
+- [ ] Add caching layer (Redis keys with transcript hash)
+- [ ] Write unit tests for each function
+- [ ] Create integration test with sample videos
+- [ ] Create `/v3/analyze/educational` endpoint
+- [ ] Create `/v3/analyze/full` endpoint (orchestrator)
+- [ ] Add error handling and logging
+- [ ] Test with real YouTube videos (5+ samples)
+- [ ] Document API responses
+- [ ] Create `intelligent_timestamping.py` with functions:
+- [ ] Algorithm:
+- [ ] Create prompt: "At what timestamps does a NEW concept get introduced?"
+- [ ] Add confidence scoring
+- [ ] Compare with fixed chapters (show improvement metric)
+- [ ] Test with 10 educational videos
+- [ ] Create `multi_pass_analyzer.py` with functions:
+- [ ] Implement caching after each pass (don't re-analyze)
+- [ ] Use structured output (JSON) from LLM
+- [ ] Add error recovery (fallback if LLM fails)
+- [ ] Parallel processing where possible
+- [ ] Logging at each pass
+- [ ] Test with 5 videos, measure time
+- [ ] Create `concept_extractor.py` with functions:
+- [ ] Create database schema for concepts:
+- [ ] Prompts:
+- [ ] Store embeddings for each concept (for later similarity)
+- [ ] Test extraction quality (manual validation on 5 videos)
+- [ ] Create `/v3/concepts/{video_id}` endpoint
+- [ ] Create `/v3/concepts/graph/{video_id}` endpoint
+- [ ] Add concept search endpoint
+- [ ] Update frontend to display concepts:
+- [ ] Test with different video types
+- [ ] Create `summarizer_v2.py` with modes:
+- [ ] Prompts for each level (example ELI5):
+- [ ] Use chain-of-thought: "Think step by step: 1) Main idea 2) Key points 3) Simple explanation"
+- [ ] Cache all summaries
+- [ ] Create `/v3/summaries/{video_id}?level=eli5|standard|expert|tldr|visual`
+- [ ] Update UI with selector
+- [ ] Test summaries (quality comparison)
+- [ ] Create `rag_v2.py` with improvements:
+- [ ] Improve embedding quality (use better model)
+- [ ] Implement context window (last 10 Q&A pairs)
+- [ ] Add confidence scoring to answers
+- [ ] Create `/v3/qa/smart` endpoint
+- [ ] Update ChatPanel to:
+- [ ] Test with 20 diverse questions
+- [ ] Database schema:
+- [ ] Prompts for quality:
+- [ ] Generate 5-10 questions per concept
+- [ ] Test question quality (validate manually)
+- [ ] Implement spaced repetition scheduling:
+- [ ] Create `objectives_extractor.py`:
+- [ ] Database schema:
+- [ ] Prompts:
+- [ ] Create `/v3/objectives/{video_id}` endpoint
+- [ ] Add objectives display in frontend
+- [ ] Create `difficulty_detector.py`:
+- [ ] Database schema:
+- [ ] Create `/v3/difficulty/{video_id}` endpoint
+- [ ] Add difficulty badge in frontend (color coded)
+- [ ] Create `knowledge_graph.py`:
+- [ ] Create graph database schema (or use relational with graph structure)
+- [ ] Create `/v3/concepts/graph/{video_id}` endpoint
+- [ ] Create `/v3/learning-path/suggest` endpoint
+- [ ] Frontend component for graph visualization (D3.js or similar)
+- [ ] Test graph with different knowledge structures
+- [ ] Create `notes_generator.py`:
+- [ ] Support export formats:
+- [ ] Create `/v3/study-notes/{video_id}` endpoint
+- [ ] Add export functionality in frontend
+- [ ] Test notes quality on different topics
+- [ ] Create `analytics.py`:
+- [ ] Database schema:
+- [ ] Create `/v3/analytics/{user_id}` endpoint
+- [ ] Create `/v3/analytics/dashboard` endpoint
+- [ ] Frontend Dashboard component:
+- [ ] Add export analytics to CSV/PDF
+- [ ] Create `personalization.py`:
+- [ ] Database schema:
+- [ ] Create `/v3/learning-path/{user_id}` endpoint
+- [ ] Create `/v3/recommendations/{user_id}` endpoint
+- [ ] Frontend path visualizer
+- [ ] Test with different user profiles
+- [ ] Integration tests for all Phase 2 components
+- [ ] End-to-end testing:
+- [ ] Performance testing (response times)
+- [ ] Load testing (multiple users)
+- [ ] Quality assurance manual testing
+- [ ] Extend user model with:
+- [ ] Create `/v3/profile/preferences` endpoint
+- [ ] Frontend profile settings page
+- [ ] Store learning preferences
+- [ ] Use preferences in all recommendations
+- [ ] Implement path-finding algorithm:
+- [ ] Consider:
+- [ ] Create visual path representation
+- [ ] Allow manual path adjustments
+- [ ] Track path completion
+- [ ] Create `comparator.py`:
+- [ ] Database schema for content relationships
+- [ ] Create `/v3/compare/{concept}` endpoint
+- [ ] Create comparison view in frontend
+- [ ] Allow side-by-side comparison
+- [ ] Implement SM-2 algorithm:
+- [ ] Create mnemonic generator:
+- [ ] Database tracking
+- [ ] Create `/v3/review/next` endpoint
+- [ ] Review reminder system
+- [ ] Mnemonic display in quiz
+- [ ] Frontend component:
+- [ ] Implement:
+- [ ] Learning heatmap: Time vs. Mastery
+- [ ] Concept dependency visualization
+- [ ] Learning curve analysis
+- [ ] Weak area identification
+- [ ] Progress prediction
+- [ ] Performance benchmarking
+- [ ] Export full analytics report
+- [ ] Create comprehensive analytics endpoints
+- [ ] Implement Redis caching:
+- [ ] Cache expiration strategy
+- [ ] Add cache invalidation on updates
+- [ ] Measure performance improvement
+- [ ] Database query optimization
+- [ ] Add database indexes
+- [ ] Comprehensive unit tests (all new functions)
+- [ ] Integration tests (full workflows)
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Frontend component documentation
+- [ ] User guides for new features
+- [ ] Admin documentation
+- [ ] Video tutorials for features
+- [ ] Update App.jsx with new layout
+- [ ] Create new component pages
+- [ ] Improve mobile responsiveness
+- [ ] Add animations/transitions
+- [ ] Accessibility improvements (WCAG)
+- [ ] Dark mode support
+- [ ] Loading states
+- [ ] Error states
+- [ ] Code splitting (lazy loading)
+- [ ] Image optimization
+- [ ] API request batching
+- [ ] Frontend caching
+- [ ] Build optimization
+- [ ] Measure Core Web Vitals
+- [ ] Profile and optimize hotspots
+- [ ] Add new tabs to extension:
+- [ ] Implement offline mode (cache data)
+- [ ] Add progress sync
+- [ ] Improve UI/UX
+- [ ] Test all features
+- [ ] User acceptance testing
+- [ ] Beta tester feedback
+- [ ] Bug fixes
+- [ ] Performance tuning
+- [ ] Security review
+- [ ] Data backup testing
+- [ ] Failover testing
+- [ ] Set up error tracking (Sentry)
+- [ ] Add analytics (Mixpanel/Amplitude)
+- [ ] Create monitoring dashboard
+- [ ] Set up alerting
+- [ ] Add logging (ELK stack optional)
+- [ ] Create runbooks for issues
+- [ ] Create deployment guides
+- [ ] Set up CI/CD pipeline
+- [ ] Create rollback procedures
+- [ ] Deploy to staging
+- [ ] Test in staging
+- [ ] Deploy to production
+- [ ] Monitor for issues
+- [ ] Track % complete for each phase
+- [ ] Count bugs found vs. fixed
+- [ ] Monitor test coverage
+- [ ] Track code quality (linting)
+- [ ] API response times
+- [ ] Frontend load times
+- [ ] Database query times
+- [ ] Cache hit rates
+- [ ] Error rates
+- [ ] Feature usage rates
+- [ ] User retention
+- [ ] Quiz completion rates
+- [ ] Learning goal achievement
+- [ ] Bug density
+- [ ] Test coverage
+- [ ] Code review feedback
+- [ ] Performance regression
+- [ ] All Phase 1 complete and tested
+- [ ] All Phase 2 complete and tested
+- [ ] Personalization working end-to-end
+- [ ] Performance meets targets
+- [ ] Security reviewed
+- [ ] Documentation complete
+- [ ] Team trained
+- [ ] Monitoring set up
+- [ ] Backup procedures tested
+- [ ] Rollback procedure ready
+
+## Nested Done
+- [x] Generate quiz questions from key concepts
+- [x] Build MCQ-style practice items with answers and explanations
+- [x] Use Gemini when available, with deterministic fallback questions
+- [x] `quiz_questions` table: id, video_id, concept_id, type, question, correct_answer, options
+- [x] `quiz_responses` table: id, user_id, question_id, answer, is_correct, timestamp
+- [x] Track attempts and scores
+- [x] Use SM-2 algorithm (scheduling)
+- [x] Return next review date
+
+## Nested Pending
+- [ ] `__init__.py`
+- [ ] `education_detector.py` (stub)
+- [ ] `intelligent_timestamping.py` (stub)
+- [ ] `concept_extractor.py` (stub)
+- [ ] `rag_v2.py` (stub)
+- [ ] `summarizer_v2.py` (stub)
+- [ ] `multi_pass_analyzer.py` (stub)
+- [ ] numpy (for processing)
+- [ ] scikit-learn (for metrics)
+- [ ] networkx (for graphs)
+- [ ] `ENABLE_V3_FEATURES` = true
+- [ ] `LLM_MODEL` = "claude-3-5-sonnet"
+- [ ] `EMBEDDING_MODEL` = "text-embedding-3-large"
+- [ ] `detect_educational_sections(transcript)` - Split into sections
+- [ ] `score_educational_relevance(text)` - Score 0-100
+- [ ] `identify_teaching_patterns(transcript)` - Detect: lecture/demo/discussion
+- [ ] `extract_implied_objectives(content)` - Find what's being taught
+- [ ] `filter_non_educational_segments(transcript)` - Remove fluff
+- [ ] "Is this section educational? Rate 0-100"
+- [ ] "What teaching pattern is this? (lecture/demo/Q&A/discussion)"
+- [ ] "What are the learning objectives implied here?"
+- [ ] Input: video_id, transcript
+- [ ] Output: educational_score, sections, teaching_patterns, objectives
+- [ ] Cache results in database
+- [ ] `detect_concept_transitions(transcript, timestamps)` - Find when new concept starts
+- [ ] `identify_teaching_moments(transcript)` - Mark important moments
+- [ ] `generate_smart_chapters(transcript, min_length=5, max_length=15)` - Create chapters
+- [ ] `label_chapters_by_concept(chapters, concepts)` - Name each chapter
+- [ ] `create_checkpoint_markers(chapters)` - Mark quiz points
+- [ ] Analyze transcript for topic changes
+- [ ] Use LLM to identify transitions
+- [ ] Create chapters 5-15 minutes (smart algorithm)
+- [ ] Name each chapter with concept learned
+- [ ] Mark teaching moments as checkpoints
+- [ ] `pass_1_structure_analysis(transcript)` - Find sections, topics
+- [ ] `pass_2_concept_extraction(transcript)` - Deep analysis
+- [ ] `pass_3_difficulty_assessment(content, concepts)` - Assess difficulty
+- [ ] `pass_4_knowledge_graph_building(concepts)` - Build relationships
+- [ ] `pass_5_relationship_mapping(graph)` - Find prerequisites
+- [ ] `run_all_passes(transcript)` - Orchestrate all
+- [ ] `extract_concepts_hierarchical(transcript)` - Find parent/child concepts
+- [ ] `detect_prerequisites(concepts)` - What needs to be learned first
+- [ ] `generate_concept_definitions(transcript, concepts)` - Get definitions from content
+- [ ] `map_concept_relationships(concepts)` - Find "relates to" links
+- [ ] `assess_concept_difficulty(concept, content)` - Rate each concept
+- [ ] `calculate_concept_importance(concept, occurrences)` - How important is it
+- [ ] `concepts` table with: id, video_id, name, definition, difficulty, importance
+- [ ] `concept_prerequisites` table: concept_id, prerequisite_id
+- [ ] `concept_occurrences` table: concept_id, timestamp, context
+- [ ] "List all main concepts taught: hierarchy format"
+- [ ] "What prerequisites are needed for each concept?"
+- [ ] "Define each concept in one sentence from the content"
+- [ ] Returns: hierarchical concepts, definitions, difficulty, importance
+- [ ] Format: JSON tree structure
+- [ ] Returns: graph data (nodes + edges) for visualization
+- [ ] Add "Concepts" tab
+- [ ] Create collapsible tree view
+- [ ] Show definitions on hover
+- [ ] Color by difficulty level
+- [ ] Add search functionality
+- [ ] `summarize_eli5(transcript)` - 5-year-old level
+- [ ] `summarize_standard(transcript)` - Normal depth
+- [ ] `summarize_expert(transcript)` - Technical depth
+- [ ] `summarize_tldr(transcript)` - Ultra-short (2 sentences)
+- [ ] `summarize_visual(transcript)` - ASCII diagrams
+- [ ] "Explain this like you're teaching a 5-year-old: [transcript]"
+- [ ] `retrieve_context_aware(question, transcript_embeddings)` - Better retrieval
+- [ ] `multi_hop_reasoning(question, context)` - Connect multiple facts
+- [ ] `generate_answer_with_reasoning(question, context)` - Explain why
+- [ ] `cite_sources(answer, transcript, timestamps)` - Add citations
+- [ ] `maintain_conversation_context(history)` - Remember previous questions
+- [ ] Show timestamps for answers
+- [ ] Display confidence score
+- [ ] Show evidence/reasoning
+- [ ] Add citations with links
+- [ ] `generate_mcq(concept, context, num_options=4)` - MCQ questions
+- [ ] `generate_true_false(concept, context)` - T/F questions
+- [ ] `generate_essay(concept, context)` - Essay prompts
+- [ ] `generate_fill_blank(concept, context)` - Fill-in-the-blank
+- [ ] `generate_matching(concepts, context)` - Matching pairs
+- [ ] `create_difficulty_progression(concepts)` - Order by difficulty
+- [ ] `generate_answer_explanations(question, answer)` - Explain why
+- [ ] "Generate 4 multiple choice options for: [concept]"
+- [ ] "Create a T/F question that tests: [concept]"
+- [ ] `extract_stated_objectives(transcript)` - Find explicit objectives
+- [ ] `infer_implicit_objectives(content, concepts)` - Infer hidden objectives
+- [ ] `map_to_blooms_taxonomy(objectives)` - Classify difficulty
+- [ ] `generate_learning_statements(objectives)` - "You will learn..."
+- [ ] `track_objective_coverage(content, objectives)` - How much covered
+- [ ] `create_objectives_checklist(objectives)` - Checklist format
+- [ ] `learning_objectives` table: id, video_id, objective_text, bloom_level, coverage_percent
+- [ ] "What are the learning objectives? List as 'Students will...' statements"
+- [ ] "Map to Bloom's taxonomy (remember, understand, apply, analyze, evaluate, create)"
+- [ ] `analyze_vocabulary_complexity(text)` - Analyze words used
+- [ ] `assess_math_depth(content)` - How complex mathematically
+- [ ] `evaluate_prerequisite_knowledge(content)` - What's assumed
+- [ ] `score_overall_difficulty(all_factors)` - Combine metrics
+- [ ] `recommend_target_audience(score)` - Beginner/Intermediate/Expert
+- [ ] `suggest_prerequisites(content)` - What to learn first
+- [ ] `estimate_mastery_time(difficulty, concept_count)` - How long to learn
+- [ ] `difficulty_metrics` table: video_id, vocabulary_score, math_score, complexity_score, overall_score, target_audience, estimated_time_minutes
+- [ ] `build_concept_graph(concepts, relationships)` - Create graph
+- [ ] `add_prerequisite_edges(graph)` - Add "requires" relationships
+- [ ] `find_learning_path(start_concept, end_concept)` - Path finding
+- [ ] `visualize_graph(graph)` - Create visual data
+- [ ] `detect_knowledge_gaps(user_progress, graph)` - Find missing knowledge
+- [ ] `generate_cornell_notes(concepts, summary)` - Cornell note format
+- [ ] `extract_formulas_equations(content)` - Get mathematical content
+- [ ] `create_summary_boxes(concepts)` - Key concept boxes
+- [ ] `generate_key_terms(concepts)` - Vocabulary list
+- [ ] `create_visual_summaries(concepts)` - ASCII diagrams
+- [ ] `generate_practice_problems(concepts)` - Problem suggestions
+- [ ] Markdown with proper formatting
+- [ ] PDF printable
+- [ ] Word document
+- [ ] HTML for web
+- [ ] `calculate_concept_mastery(user_id, concept_id)` - Mastery 0-100%
+- [ ] `calculate_learning_velocity(user_id)` - Speed of learning
+- [ ] `track_time_per_concept(user_id, concept_id)` - Time spent
+- [ ] `analyze_quiz_performance(user_id)` - Score trends
+- [ ] `identify_weak_concepts(user_id)` - Problem areas
+- [ ] `generate_progress_metrics(user_id)` - Overall stats
+- [ ] `user_progress` table: user_id, concept_id, mastery_percent, quiz_attempts, avg_score, time_spent
+- [ ] `learning_analytics` table: user_id, date, concepts_learned, mastery_gain, time_spent
+- [ ] Progress charts
+- [ ] Concept mastery heatmap
+- [ ] Learning velocity graph
+- [ ] Weak concepts highlighted
+- [ ] `build_user_profile(user_id)` - User preferences
+- [ ] `assess_learning_style(user_id)` - Visual/audio/kinesthetic
+- [ ] `create_learning_path(user_id, goal)` - Recommend sequence
+- [ ] `adjust_difficulty(user_id)` - Auto-adjust based on performance
+- [ ] `recommend_next_content(user_id)` - What to learn next
+- [ ] `suggest_prerequisites(user_id, goal)` - What's missing
+- [ ] `user_preferences` table: user_id, learning_style, difficulty_preference, pace
+- [ ] `learning_paths` table: user_id, path_name, concepts_ordered, progress_percent
+- [ ] Upload video → Generate quiz → Check answers → See analytics
+- [ ] learning_style (visual, audio, kinesthetic, reading-writing)
+- [ ] difficulty_preference (beginner, intermediate, advanced)
+- [ ] pace (slow, normal, fast)
+- [ ] interests (array of topics)
+- [ ] background_knowledge (level of expertise)
+- [ ] User's current knowledge level
+- [ ] Goal concept to learn
+- [ ] Find prerequisite chain
+- [ ] Estimate total time
+- [ ] Suggest resources in order
+- [ ] User preferences
+- [ ] Optimal learning order
+- [ ] Difficulty progression
+- [ ] Spaced repetition timing
+- [ ] `find_similar_content(concept, exclude_video_id)` - Find alternative explanations
+- [ ] `compare_teaching_styles(video1_id, video2_id)` - Contrast approaches
+- [ ] `highlight_unique_insights(video_id)` - Unique perspectives
+- [ ] `rank_by_learner_preference(videos, user_id)` - Best for this learner
+- [ ] Track each concept/quiz attempt
+- [ ] Calculate next review date
+- [ ] Adjust based on performance
+- [ ] Export schedule
+- [ ] Story-based mnemonics
+- [ ] Visual associations
+- [ ] Acronyms
+- [ ] Click to expand concepts
+- [ ] Show related concepts
+- [ ] Preview definitions
+- [ ] See examples from video
+- [ ] View resource links
+- [ ] Search functionality
+- [ ] Concept search (fuzzy matching)
+- [ ] Related concept finder
+- [ ] Example extraction
+- [ ] External resource linking
+- [ ] Cache concepts
+- [ ] Cache embeddings
+- [ ] Cache summaries
+- [ ] Cache quiz questions
+- [ ] Cache analysis results
+- [ ] Concepts explorer
+- [ ] Quiz interface
+- [ ] Analytics widget
+- [ ] Learning path

@@ -27,6 +27,7 @@ from .features_routes import router as features_router
 from .utils.education_ai import analyze_educational_content, get_smart_timestamps
 from .utils.quiz_service import generate_or_get_quiz, get_next_question, submit_answer, get_performance
 from .models import SessionLocal
+from .v3_routes import router as v3_router
 
 app = FastAPI(
     title="AI Learning Companion",
@@ -40,6 +41,7 @@ app.add_middleware(SimpleRateLimiter, calls=int(os.getenv("RATE_LIMIT_CALLS", "6
 # Include new feature routers
 app.include_router(auth_router)
 app.include_router(features_router)
+app.include_router(v3_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -17,3 +17,11 @@ def summarize_expert(transcript: str) -> str:
 def summarize_tldr(transcript: str) -> str:
     words = (transcript or "").split()
     return ' '.join(words[:20]) + '...' if words else ""
+
+
+def summarize_visual(transcript: str) -> str:
+    if not transcript:
+        return ""
+    words = transcript.split()
+    key_points = words[:3] + words[-3:] if len(words) > 6 else words
+    return "\n".join(["[Summary Diagram]", " -> ".join(key_points), "[End Diagram]"])

@@ -90,6 +90,12 @@ I've created 4 critical files for you:
 - Learning outcome differences
 - Business impact
 
+### 5. **scripts/todo_tracker.py**
+- Shared checklist updater for the team
+- Marks tasks done/undone in `TODO_LIST_V3_0.md`
+- Regenerates `TODO_LIST_V3_0_STATUS.md` with a clean done/pending summary
+- Keep this file and the status snapshot committed so everyone sees the same progress
+
 ---
 
 ## ⏱️ TIMELINE

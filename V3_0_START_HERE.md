@@ -249,6 +249,17 @@ def generate_answer_with_citations(question, context):
 
 ## 📝 Day-by-Day Checklist
 
+### Shared Team Workflow
+
+Use the tracker CLI whenever a task is completed or reopened:
+
+```powershell
+cd z:\AI-Learning-Companion
+python scripts\todo_tracker.py TODO_LIST_V3_0.md --mark "your task text"
+```
+
+That command updates the shared markdown checklist and regenerates `TODO_LIST_V3_0_STATUS.md`, so every teammate can quickly see what is done and what is still pending.
+
 ### **Day 1 Checklist**
 - [ ] Read all documentation
 - [ ] Create feature branch

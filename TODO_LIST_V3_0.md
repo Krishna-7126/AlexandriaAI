@@ -2,7 +2,7 @@
 
 **Total: 150+ Implementation Tasks**
 **Estimated Timeline: 6-8 weeks**
-**Status: 🔴 Not Started**
+**Status: 🟡 In Progress**
 
 ## ✅ Completed in this workstream
 
@@ -14,6 +14,10 @@
 - [x] Quiz generation endpoint added for concept-based practice
 - [x] Quiz lifecycle added: generate, get-next, submit, and performance endpoints
 - [x] Quiz panel added to the frontend for active recall practice
+- [x] v3 API router added with educational analysis, concepts, summaries, smart QA, objectives, difficulty, notes, analytics, personalization, compare, and review endpoints
+- [x] v3 helper modules expanded with heuristic implementations for educational detection, concept extraction, timestamping, summarization, RAG, and multi-pass analysis
+- [x] v3 endpoint tests added and passing
+- [x] Backend test slice passes with the new v3 routes in place
 
 ---
 
