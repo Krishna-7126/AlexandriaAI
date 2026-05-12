@@ -12,10 +12,6 @@ import { Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { getAnalysisStatus, clearVideoCache } from './api/v3Client';
 
-const ObjectivesPanel = lazy(() => import('./components/ObjectivesPanel'));
-const StudyNotesPanel = lazy(() => import('./components/StudyNotesPanel'));
-const ConceptsPanel = lazy(() => import('./components/ConceptsPanel'));
-const SummariesPanel = lazy(() => import('./components/SummariesPanel'));
 const AnalyticsPanel = lazy(() => import('./components/AnalyticsPanel'));
 
 const FAQItem = ({ question, answer }) => {
@@ -43,8 +39,16 @@ function App() {
   const [ingestInfo, setIngestInfo] = useState(null);
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
-  const [selectedPanel, setSelectedPanel] = useState('objectives');
+  const [selectedWorkspacePage, setSelectedWorkspacePage] = useState('overview');
   const [analysisRefreshKey, setAnalysisRefreshKey] = useState(0);
+
+  const workspacePages = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'chat', label: 'Q&A Chat' },
+    { id: 'chapters', label: 'Smart Moments' },
+    { id: 'quiz', label: 'Smart Quiz' },
+    { id: 'analytics', label: 'Analytics' },
+  ];
 
   const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
@@ -346,47 +350,62 @@ function App() {
               <button className="ghost" onClick={() => { setVideoId(null); setIngestInfo(null); }} style={{ borderRadius: '12px' }}>Analyze Another Video</button>
             </div>
 
-            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.35fr) minmax(360px, 1fr)', gap: '2rem', alignItems: 'start' }}>
-              {/* Left Column: Player, Chapters, and Summary */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0 }}>
+            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(380px, 0.95fr)', gap: '2rem', alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
                 <div className="atmospheric-glow" style={{ borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                   <VideoPlayer videoId={youtubeId} ref={playerRef} />
                 </div>
-                <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
-                <SummaryDashboard videoId={videoId} isProcessing={isProcessing} previewTitle={ingestInfo?.preview_title} previewSummary={ingestInfo?.preview_summary} onTimestampClick={handleTimestampClick} />
+
+                <div className="glass-panel atmospheric-glow" style={{ padding: '1.25rem 1.5rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>
+                    Current source
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                    {ingestInfo?.preview_title || ingestInfo?.source || 'Ready for AI analysis'}
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                    Use the page tabs to switch between the overview, chat, smart moments, quiz, and analytics.
+                  </p>
+                </div>
               </div>
 
-              {/* Right Column: Chat, Detail Tabs, and Quiz */}
-              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, position: 'sticky', top: '100px', alignSelf: 'start' }}>
-                <div className="glass-panel atmospheric-glow" style={{ minHeight: '560px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+              <div className="workspace-right-col glass-panel atmospheric-glow" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0, position: 'sticky', top: '100px', alignSelf: 'start', maxHeight: 'calc(100vh - 140px)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {workspacePages.map((page) => (
+                    <button
+                      key={page.id}
+                      onClick={() => setSelectedWorkspacePage(page.id)}
+                      className={selectedWorkspacePage === page.id ? 'active-tab' : 'ghost'}
+                      style={{ padding: '0.5rem 0.9rem', borderRadius: 999, fontSize: '0.85rem' }}
+                    >
+                      {page.label}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="glass-panel atmospheric-glow" style={{ padding: '1.25rem', borderRadius: '1.5rem' }}>
-                  <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                    {[
-                      ['objectives', 'Objectives'],
-                      ['notes', 'Notes'],
-                      ['concepts', 'Concepts'],
-                      ['summaries', 'Summaries'],
-                      ['analytics', 'Analytics'],
-                    ].map(([key, label]) => (
-                      <button key={key} onClick={() => setSelectedPanel(key)} className={selectedPanel === key ? 'active-tab' : ''} style={{ padding: '0.45rem 0.75rem', borderRadius: 999, fontSize: '0.85rem' }}>{label}</button>
-                    ))}
-                  </div>
-
-                  <div style={{ border: '1px solid var(--outline-variant)', borderRadius: 16, overflow: 'hidden', background: 'rgba(255,255,255,0.4)' }}>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      {selectedPanel === 'objectives' && <ObjectivesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
-                      {selectedPanel === 'notes' && <StudyNotesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
-                      {selectedPanel === 'concepts' && <ConceptsPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
-                      {selectedPanel === 'summaries' && <SummariesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
-                      {selectedPanel === 'analytics' && <AnalyticsPanel userId={'me'} />}
-                    </Suspense>
-                  </div>
+                <div style={{ minHeight: '0', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    {selectedWorkspacePage === 'overview' && (
+                      <SummaryDashboard
+                        videoId={videoId}
+                        isProcessing={isProcessing}
+                        previewTitle={ingestInfo?.preview_title}
+                        previewSummary={ingestInfo?.preview_summary}
+                        onTimestampClick={handleTimestampClick}
+                      />
+                    )}
+                    {selectedWorkspacePage === 'chat' && (
+                      <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                    )}
+                    {selectedWorkspacePage === 'chapters' && (
+                      <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                    )}
+                    {selectedWorkspacePage === 'quiz' && (
+                      <QuizPanel videoId={videoId} isProcessing={isProcessing} />
+                    )}
+                    {selectedWorkspacePage === 'analytics' && <AnalyticsPanel userId={'me'} />}
+                  </Suspense>
                 </div>
-
-                <QuizPanel videoId={videoId} isProcessing={isProcessing} />
               </div>
             </div>
           </section>

@@ -7,6 +7,13 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
   const [loading, setLoading] = useState(false);
   const requestSeq = useRef(0);
 
+  const isMeaningfulLabel = (value) => {
+    const label = String(value || '').trim();
+    if (!label) return false;
+    if (/^(chunk\s+\d+|start|teaching moment)$/i.test(label)) return false;
+    return true;
+  };
+
   useEffect(() => {
     if (!videoId) return;
 
@@ -50,15 +57,19 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
     return null; // Don't show timeline if no video or no timestamps
   }
 
-  if (isProcessing && timestamps.length === 0) {
+  const visibleTimestamps = timestamps
+    .filter((ts) => isMeaningfulLabel(ts?.label) || isMeaningfulLabel(ts?.reason))
+    .map((ts, index) => ({ ...ts, displayLabel: isMeaningfulLabel(ts?.label) ? ts.label : `Smart moment ${index + 1}` }));
+
+  if (isProcessing && visibleTimestamps.length === 0) {
     return (
       <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '0.25rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
-          <Clock size={18} color="var(--primary)" /> Video Chapters
+          <Clock size={18} color="var(--primary)" /> Smart Moments
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)' }}>
           <Loader2 size={18} className="animate-spin" />
-          <span>Building chapters as the transcript finishes processing...</span>
+          <span>Building smart moments as the AI finishes analysis...</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem' }}>
           <div className="skeleton-card" style={{ padding: '0.85rem', minHeight: '72px' }}>
@@ -78,8 +89,17 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
     );
   }
 
-  if (timestamps.length === 0) {
-    return null; // Don't show timeline if no video or no timestamps
+  if (visibleTimestamps.length === 0) {
+    return (
+      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '0.25rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
+          <Clock size={18} color="var(--primary)" /> Smart Moments
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+          The AI has not produced moment markers yet. They will appear here once analysis finishes.
+        </p>
+      </div>
+    );
   }
 
   const formatTime = (seconds) => {
@@ -98,14 +118,14 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
   return (
     <div className="glass-panel">
       <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
-        <Clock size={18} color="var(--primary)" /> Video Chapters
+        <Clock size={18} color="var(--primary)" /> Smart Moments
       </h3>
       
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Loading chapters...</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading smart moments...</p>
       ) : (
         <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-          {timestamps.map((ts, idx) => (
+          {visibleTimestamps.map((ts, idx) => (
             <button
               key={idx}
               onClick={() => onTimestampClick && onTimestampClick(normalizeTimestamp(ts))}
@@ -125,7 +145,7 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
                 {formatTime(normalizeTimestamp(ts))}
               </span>
               <span style={{ fontSize: '0.9rem', textAlign: 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {ts.label || ts.reason || 'Teaching moment'}
+                {ts.displayLabel}
               </span>
             </button>
           ))}

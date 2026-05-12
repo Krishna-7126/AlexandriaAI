@@ -233,7 +233,7 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
           type="text" 
           value={question} 
           onChange={(e) => setQuestion(e.target.value)} 
-          placeholder={isProcessing ? 'Ask now; answers improve as transcript finishes...' : 'Ask a question...'} 
+          placeholder={isProcessing ? 'Ask now; answers improve as analysis finishes...' : 'Ask a question...'} 
           disabled={!videoId || isAsking}
           style={{ flex: 1, borderRadius: '24px', paddingLeft: '1.25rem', background: 'var(--surface-container-lowest)' }}
         />

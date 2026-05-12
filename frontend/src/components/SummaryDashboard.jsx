@@ -15,6 +15,19 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
   const [error, setError] = useState('');
   const requestSeq = useRef(0);
 
+  const buildSmartInsight = (data = {}) => {
+    const objectives = Array.isArray(data.learning_objectives) ? data.learning_objectives.filter(Boolean) : [];
+    const concepts = Array.isArray(data.key_concepts) ? data.key_concepts.filter(Boolean) : [];
+    const topicNames = Array.isArray(data.topics)
+      ? data.topics.map((topic) => topic?.topic).filter(Boolean).slice(0, 3)
+      : [];
+    const focus = objectives[0] || concepts[0]?.name || topicNames[0] || 'the core ideas';
+    const secondFocus = topicNames[1] || concepts[1]?.name || objectives[1] || '';
+    const mode = data.teaching_mode || 'mixed';
+
+    return `This looks like a ${mode} learning session centered on ${focus}. ${secondFocus ? `A second thread worth following is ${secondFocus}. ` : ''}The strongest takeaways are being organized into a cleaner AI summary, smart moments, and concept cards.`;
+  };
+
   useEffect(() => {
     if (!videoId) return;
 
@@ -22,16 +35,16 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
     let stopped = false;
 
     const fetchAnalysis = async () => {
-      setOverall(previewSummary || null);
+      setOverall(null);
       setTopics(null);
-      setRecent(previewSummary || null);
+      setRecent(null);
       setQuality(null);
-        setEducationalScore(0);
-        setTeachingMode('mixed');
-        setLearningObjectives([]);
-        setKeyConcepts([]);
+      setEducationalScore(0);
+      setTeachingMode('mixed');
+      setLearningObjectives([]);
+      setKeyConcepts([]);
       setError('');
-      setLoading(!previewSummary);
+      setLoading(true);
       try {
         const data = await getAnalysis(videoId);
         if (stopped || requestSeq.current !== requestId) return 'stale';
@@ -39,8 +52,6 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
         const summaryReady = data.summary && !data.summary.startsWith('Summary is not available yet');
         if (summaryReady) {
           setOverall(data.summary);
-        } else if (previewSummary) {
-          setOverall(previewSummary);
         }
         if (Array.isArray(data.topics)) setTopics(data.topics);
         if (data.recent_summary && data.recent_summary !== 'No content available') setRecent(data.recent_summary);
@@ -91,6 +102,13 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
     const raw = typeof item === 'number' ? item : (item?.time ?? item?.timestamp ?? 0);
     if (onTimestampClick) onTimestampClick(Number(raw) || 0);
   };
+
+  const smartInsight = overall || buildSmartInsight({
+    learning_objectives: learningObjectives,
+    key_concepts: keyConcepts,
+    topics,
+    teaching_mode: teachingMode,
+  });
 
 
   const hasVisibleContent = Boolean(overall || (topics && topics.length > 0) || recent || previewSummary);
@@ -185,7 +203,7 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
             {previewTitle || 'Processing video'}
           </div>
           <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.7 }}>
-            {previewSummary || 'Final transcript processing is running in the background.'}
+            {previewSummary || 'The AI is still building the final summary and smart moments in the background.'}
           </p>
         </section>
       )}
@@ -229,7 +247,7 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
           <Star size={20} fill="var(--primary)" /> Overall Insight
         </h3>
         <p style={{ color: 'var(--text-primary)', lineHeight: 1.8 }}>
-          {overall || "No overall summary available yet."}
+          {smartInsight}
         </p>
       </section>
 
@@ -290,7 +308,7 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
             <History size={20} /> Recent Context
           </h3>
           <div style={{ color: 'var(--text-primary)', lineHeight: 1.7 }}>
-            {recent || "Awaiting more lecture data for recent summary..."}
+            {recent || 'Recent AI context will appear once analysis finishes.'}
           </div>
         </section>
       </div>

@@ -54,6 +54,7 @@ function setupEventListeners() {
     // Footer buttons
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
     document.getElementById('settingsBtn')?.addEventListener('click', openSettings);
+    document.getElementById('settingsBtnTop')?.addEventListener('click', openSettings);
 }
 
 // ============================================
@@ -197,34 +198,105 @@ async function generateSummary(options = {}) {
         return;
     }
 
-        const output = document.getElementById('summaryOutput');
-        const { silent = false } = options;
-        if (output && !silent) {
-            output.innerHTML = '<div class="analysis-empty">Generating a smart summary from the video ideas, not the raw subtitles...</div>';
+    const { silent = false } = options;
+    const output = document.getElementById('summaryOutput');
+    if (output && !silent) {
+        output.innerHTML = '<div class="analysis-empty">Preparing a smart summary from the video ideas, not the raw subtitles...</div>';
+        output.style.display = 'block';
+    }
+
+    showLoading(true);
+    try {
+        const analysisResponse = await fetch(`${API_BASE}/analysis/${videoId}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const analysisData = await analysisResponse.json().catch(() => ({}));
+        if (analysisResponse.ok && analysisData.summary) {
+            renderAnalysis(analysisData);
+            if (!silent) {
+                showSuccess('AI summary loaded! ✨');
+            }
+            return;
+        }
+
+        if (output) {
+            output.innerHTML = '<div class="analysis-empty">No transcript was ready yet. Starting background ingestion so Alexandria can build the summary and smart moments.</div>';
             output.style.display = 'block';
         }
 
-        showLoading(true);
-    try {
-            const response = await fetch(`${API_BASE}/analysis/${videoId}`, {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
-            });
+        const ingestResponse = await fetch(`${API_BASE}/ingest`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ video_url: window.location.href })
+        });
 
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.detail || 'Failed to generate summary');
+        if (!ingestResponse.ok) {
+            const data = await ingestResponse.json().catch(() => ({}));
+            throw new Error(data.detail || 'Failed to start video ingestion');
         }
 
-        const data = await response.json();
-                renderAnalysis(data);
-                showSuccess('AI summary loaded! ✨');
+        const ingestData = await ingestResponse.json();
+        await pollSummaryReady(ingestData.video_id, ingestData.job_id, silent);
     } catch (err) {
         showError(err.message);
     } finally {
         showLoading(false);
     }
+}
+
+async function pollSummaryReady(backendVideoId, jobId, silent = false) {
+    const output = document.getElementById('summaryOutput');
+    const maxAttempts = 24;
+    const delayMs = 2000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (output && !silent) {
+            output.innerHTML = `<div class="analysis-empty">Ingesting video and preparing smart summary... (${attempt + 1}/${maxAttempts})</div>`;
+            output.style.display = 'block';
+        }
+
+        const statusResponse = await fetch(`${API_BASE}/ingest-status/${jobId}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.status === 'completed' || statusData.status === 'success') {
+                const summaryResponse = await fetch(`${API_BASE}/analysis/${backendVideoId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (summaryResponse.ok) {
+                    const summaryData = await summaryResponse.json();
+                    if (summaryData.summary) {
+                        renderAnalysis(summaryData);
+                        if (!silent) {
+                            showSuccess('AI summary loaded! ✨');
+                        }
+                        return;
+                    }
+                }
+            }
+
+            if (statusData.status === 'failed') {
+                throw new Error(statusData.message || 'Ingestion failed');
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+
+    throw new Error('Summary is still processing. Try again in a moment.');
 }
 
 function renderAnalysis(data) {
