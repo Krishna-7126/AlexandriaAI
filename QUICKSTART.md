@@ -34,11 +34,11 @@ copy .env.example .env
 
 ```bash
 # From: z:\AI-Learning-Companion\
-python -m uvicorn backend.main:app --reload --port 8000
+python -m uvicorn backend.main:app --reload --port 8001
 ```
 
-✅ Backend running at: `http://localhost:8000`  
-✅ API Docs at: `http://localhost:8000/docs`
+✅ Backend running at: `http://localhost:8001`  
+✅ API Docs at: `http://localhost:8001/docs`
 
 ### 4. Load Extension (1 min)
 
@@ -54,7 +54,7 @@ chrome://extensions/
 
 ### 5. Test Everything (1 min)
 
-Visit `http://localhost:8000/docs` in browser and try:
+Visit `http://localhost:8001/docs` in browser and try:
 - ✅ `POST /auth/signup` - Create account
 - ✅ `POST /auth/login` - Login
 - ✅ `GET /auth/me` - Get current user
@@ -93,7 +93,7 @@ Visit `http://localhost:8000/docs` in browser and try:
 
 ### 1. Authentication
 ```bash
-# Open: http://localhost:8000/docs
+# Open: http://localhost:8001/docs
 # Click: POST /auth/signup
 # Fill:
 {
@@ -176,16 +176,16 @@ z:\AI-Learning-Companion\
 
 ```bash
 # Start backend
-python -m uvicorn backend.main:app --reload --port 8000
+python -m uvicorn backend.main:app --reload --port 8001
 
 # Test API
-curl http://localhost:8000/ping
+curl http://localhost:8001/ping
 
 # Check database
 sqlite3 alexandria.db ".tables"
 
 # View API docs
-open http://localhost:8000/docs
+open http://localhost:8001/docs
 
 # Stop server
 Ctrl+C
@@ -200,7 +200,7 @@ Ctrl+C
 
 ### In Browser
 ```
-1. Go to: http://localhost:8000/docs
+1. Go to: http://localhost:8001/docs
 2. Scroll to: POST /auth/signup
 3. Click "Try it out"
 4. Enter:
@@ -255,8 +255,8 @@ Ctrl+C
 ### Backend won't start
 ```
 Error: "Address already in use"
-Solution: Kill process on port 8000
-  - Windows: netstat -ano | findstr :8000
+Solution: Kill process on port 8001
+  - Windows: netstat -ano | findstr :8001
            : taskkill /PID <pid> /F
 ```
 
@@ -306,7 +306,7 @@ Solution:
 
 ## 🎓 Next Steps
 
-1. **Explore API** → http://localhost:8000/docs
+1. **Explore API** → http://localhost:8001/docs
 2. **Read Docs** → FEATURES.md
 3. **Deploy** → DEPLOYMENT.md
 4. **Submit Extension** → Chrome Web Store
@@ -318,7 +318,7 @@ Solution:
 ### Use Localhost for Extension
 ```
 In extension popup, click ⚙️ to set API:
-http://localhost:8000
+http://localhost:8001
 ```
 
 ### Export to Notion

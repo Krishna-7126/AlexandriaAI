@@ -110,11 +110,11 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 
 # Start the API server
-uvicorn backend.main:app --reload --port 8000
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-The backend will be available at `http://localhost:8000`  
-Swagger docs: `http://localhost:8000/docs`
+The backend will be available at `http://localhost:8001`  
+Swagger docs: `http://localhost:8001/docs`
 
 ### 4. Run the Frontend
 
@@ -125,6 +125,8 @@ npm run dev
 ```
 
 The app will be available at `http://localhost:5173`
+
+If the frontend runs on a different host or port, set `VITE_API_BASE_URL` to `http://127.0.0.1:8001`.
 
 ---
 

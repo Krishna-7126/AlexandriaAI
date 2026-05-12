@@ -217,7 +217,7 @@ WorkingDirectory=/opt/AI-Learning-Companion
 ExecStart=/opt/AI-Learning-Companion/venv/bin/gunicorn \
     --workers 4 \
     --worker-class uvicorn.workers.UvicornWorker \
-    --bind 127.0.0.1:8000 \
+    --bind 127.0.0.1:8001 \
     backend.main:app
 
 [Install]
@@ -235,7 +235,7 @@ sudo systemctl start alexandria
 Create `/etc/nginx/sites-available/alexandria`:
 ```nginx
 upstream alexandria_app {
-    server 127.0.0.1:8000;
+    server 127.0.0.1:8001;
 }
 
 server {
@@ -464,8 +464,8 @@ echo $DATABASE_URL
 
 ### Port already in use
 ```bash
-# Kill process on port 8000
-sudo lsof -ti:8000 | xargs kill -9
+# Kill process on port 8001
+sudo lsof -ti:8001 | xargs kill -9
 
 # Or use different port
 gunicorn --bind 0.0.0.0:8001 ...

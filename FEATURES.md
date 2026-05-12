@@ -357,7 +357,7 @@ cp .env.example .env
 
 ```bash
 # The database is created automatically
-uvicorn backend.main:app --reload --port 8000
+uvicorn backend.main:app --reload --port 8001
 ```
 
 ### Step 4: Load Chrome Extension
@@ -375,7 +375,7 @@ uvicorn backend.main:app --reload --port 8000
 ### Test Backend Health
 
 ```bash
-curl http://localhost:8000/
+curl http://localhost:8001/
 
 # Response
 {
@@ -390,7 +390,7 @@ curl http://localhost:8000/
 
 ```bash
 # Create account
-curl -X POST http://localhost:8000/auth/signup \
+curl -X POST http://localhost:8001/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -399,7 +399,7 @@ curl -X POST http://localhost:8000/auth/signup \
   }'
 
 # Login
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -410,14 +410,14 @@ curl -X POST http://localhost:8000/auth/login \
 TOKEN="eyJhbGciOiJIUzI1NiIs..."
 
 # Test protected endpoint
-curl http://localhost:8000/auth/me \
+curl http://localhost:8001/auth/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Test Language Support
 
 ```bash
-curl -X POST http://localhost:8000/features/translate \
+curl -X POST http://localhost:8001/features/translate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -524,7 +524,7 @@ ASSEMBLYAI_API_KEY=your_key
 
 ## 📞 Support & Documentation
 
-- **API Docs**: http://localhost:8000/docs
+- **API Docs**: http://localhost:8001/docs
 - **GitHub**: [Link to your repo]
 - **Issues**: [Report bugs here]
 - **Email**: support@example.com

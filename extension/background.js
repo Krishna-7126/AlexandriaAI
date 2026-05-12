@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log('Alexandria extension installed');
     // Initialize storage
     chrome.storage.local.set({
-        apiBase: 'http://localhost:8000',
+        apiBase: 'http://localhost:8001',
         authToken: null,
         userId: null
     });

@@ -260,7 +260,7 @@ def root():
     return {
         "message": "AI Learning Companion backend is running",
         "version": "2.0.0",
-        "docs": "http://localhost:8000/docs",
+        "docs": "http://localhost:8001/docs",
         "core_features": [
             "Contextual Q&A from video transcripts",
             "Smart summaries (overall, topic-wise, last N minutes)",

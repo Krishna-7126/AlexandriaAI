@@ -345,13 +345,13 @@ copy .env.example .env
 # Edit .env with API key
 
 # 3. Start backend
-python -m uvicorn backend.main:app --reload --port 8000
+python -m uvicorn backend.main:app --reload --port 8001
 
 # 4. Load extension in Chrome
 # chrome://extensions/ → Load unpacked → Select extension/
 
 # 5. Visit API docs
-open http://localhost:8000/docs
+open http://localhost:8001/docs
 ```
 
 ---
@@ -377,7 +377,7 @@ open http://localhost:8000/docs
 - **FEATURES.md** - Complete feature documentation
 - **DEPLOYMENT.md** - Production deployment guide
 - **QUICKSTART.md** - 5-minute setup guide
-- **http://localhost:8000/docs** - Interactive API docs
+- **http://localhost:8001/docs** - Interactive API docs
 
 ---
 
