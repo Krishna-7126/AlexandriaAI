@@ -4,6 +4,14 @@
 **Estimated Timeline: 6-8 weeks**
 **Status: 🔴 Not Started**
 
+## ✅ Completed in this workstream
+
+- [x] Educational content analysis layer for score, teaching mode, objectives, concepts, and smart timestamps
+- [x] Multi-level summaries now use educational analysis first
+- [x] Q&A now uses educational context and concept-aware prompting
+- [x] Frontend now surfaces educational score, teaching mode, objectives, and key concepts
+- [x] Quiz generation endpoint added for concept-based practice
+
 ---
 
 ## 🔴 **PHASE 1: FOUNDATION (Weeks 1-2) - CRITICAL**
@@ -166,7 +174,10 @@
 ### **Week 3: Quizzes & Objectives**
 
 #### Day 15-16: Quiz Generation Engine
-- [ ] Create `quiz_generator.py` with functions:
+- [x] Create `quiz_generator.py` with concept-based quiz generation and fallback flow
+  - [x] Generate quiz questions from key concepts
+  - [x] Build MCQ-style practice items with answers and explanations
+  - [x] Use Gemini when available, with deterministic fallback questions
   - [ ] `generate_mcq(concept, context, num_options=4)` - MCQ questions
   - [ ] `generate_true_false(concept, context)` - T/F questions
   - [ ] `generate_essay(concept, context)` - Essay prompts
@@ -184,7 +195,7 @@
 - [ ] Test question quality (validate manually)
 
 #### Day 17: Quiz Endpoints & Spaced Repetition
-- [ ] Create `/v3/quiz/generate/{video_id}` endpoint
+- [x] Create `/v3/quiz/generate/{video_id}` endpoint
 - [ ] Create `/v3/quiz/get-next` endpoint (spaced repetition algorithm)
 - [ ] Create `/v3/quiz/submit` endpoint (check answer)
 - [ ] Implement spaced repetition scheduling:

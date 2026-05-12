@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,6 +103,7 @@
 
     .auth-container {
       background: rgba(255, 255, 255, 0.8);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border-radius: 1.5rem;
       padding: 1.5rem;
@@ -216,6 +217,7 @@
 
     .video-info {
       background: rgba(255, 255, 255, 0.7);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(27, 48, 34, 0.1);
       border-radius: 1rem;
@@ -280,6 +282,7 @@
 
     .feature-group {
       background: rgba(255, 255, 255, 0.7);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(27, 48, 34, 0.1);
       border-radius: 1rem;
@@ -322,6 +325,23 @@
       max-height: 150px;
       overflow-y: auto;
       margin-top: 0.5rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .mt-sm {
+      margin-top: 0.5rem;
+    }
+
+    .library-output {
+      background: #f5f3f0;
+      color: #4b5563;
+    }
+
+    .settings-btn {
+      flex: 0.5;
     }
 
     .status-message {
@@ -416,7 +436,7 @@
         <div class="header-subtitle">AI Learning Companion v2.0</div>
       </div>
       <div class="user-info">
-        <div id="userDisplay" style="display: none;">
+        <div id="userDisplay" class="hidden">
           <div class="user-info-name" id="userName">User</div>
           <div>Logged in</div>
         </div>
@@ -480,7 +500,7 @@
     <!-- Main Section -->
     <div id="mainSection">
       <!-- Video Info -->
-      <div id="videoInfo" class="video-info" style="display: none;">
+      <div id="videoInfo" class="video-info hidden">
         <strong>📺 Current Video:</strong>
         <div class="video-title" id="videoTitle"></div>
       </div>
@@ -501,7 +521,7 @@
           <button class="btn btn-primary" id="generateSummaryBtn">
             <span>⚡ Generate Summary</span>
           </button>
-          <div id="summaryOutput" class="output-area" style="display: none;"></div>
+          <div id="summaryOutput" class="output-area hidden"></div>
         </div>
       </div>
 
@@ -510,10 +530,10 @@
         <div class="feature-group">
           <label>Ask a Question</label>
           <textarea id="questionInput" placeholder="What was the main topic discussed?"></textarea>
-          <button class="btn btn-primary" id="askBtn" style="margin-top: 0.5rem;">
+          <button class="btn btn-primary mt-sm" id="askBtn">
             <span>Ask Question</span>
           </button>
-          <div id="qaOutput" class="output-area" style="display: none;"></div>
+          <div id="qaOutput" class="output-area hidden"></div>
         </div>
       </div>
 
@@ -527,10 +547,10 @@
             <option value="notion">📌 Notion</option>
             <option value="google_docs">🔗 Google Docs</option>
           </select>
-          <button class="btn btn-primary" id="exportBtn" style="margin-top: 0.5rem;">
+          <button class="btn btn-primary mt-sm" id="exportBtn">
             <span>Export Summary</span>
           </button>
-          <div id="exportOutput" class="output-area" style="display: none;"></div>
+          <div id="exportOutput" class="output-area hidden"></div>
         </div>
         <div class="feature-group">
           <button class="btn btn-secondary" id="saveVideoBtn">
@@ -557,10 +577,10 @@
             <option value="ar">🇸🇦 Arabic</option>
             <option value="hi">🇮🇳 Hindi</option>
           </select>
-          <button class="btn btn-primary" id="translateBtn" style="margin-top: 0.5rem;">
+          <button class="btn btn-primary mt-sm" id="translateBtn">
             <span>🔄 Translate</span>
           </button>
-          <div id="translateOutput" class="output-area" style="display: none;"></div>
+          <div id="translateOutput" class="output-area hidden"></div>
         </div>
       </div>
 
@@ -575,10 +595,10 @@
             • RSS feed URL<br>
             • Auto-detected from URL
           </div>
-          <button class="btn btn-primary" id="addStreamingBtn" style="margin-top: 0.5rem;">
+          <button class="btn btn-primary mt-sm" id="addStreamingBtn">
             <span>➕ Add Content</span>
           </button>
-          <div id="streamingOutput" class="output-area" style="display: none;"></div>
+          <div id="streamingOutput" class="output-area hidden"></div>
         </div>
       </div>
 
@@ -586,10 +606,10 @@
       <div id="library-tab" class="tab-content">
         <div class="feature-group">
           <label>Your Saved Videos</label>
-          <div id="libraryList" class="output-area" style="background: #f5f3f0; color: #4b5563;">
+          <div id="libraryList" class="output-area library-output">
             <small>Loading your library...</small>
           </div>
-          <button class="btn btn-secondary" id="refreshLibraryBtn" style="margin-top: 0.5rem;">
+          <button class="btn btn-secondary mt-sm" id="refreshLibraryBtn">
             🔄 Refresh Library
           </button>
         </div>
@@ -597,7 +617,7 @@
 
       <!-- Footer -->
       <div class="footer">
-        <button class="btn btn-secondary" id="settingsBtn" style="flex: 0.5;">⚙️</button>
+        <button class="btn btn-secondary settings-btn" id="settingsBtn">⚙️</button>
         <button class="btn btn-secondary" id="logoutBtn">Logout</button>
       </div>
     </div>

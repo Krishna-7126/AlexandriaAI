@@ -24,6 +24,7 @@ from .utils.quick_summary import generate_quick_summary, is_gemini_error
 from .auth_routes import router as auth_router
 from .features_routes import router as features_router
 from .utils.education_ai import analyze_educational_content, get_smart_timestamps
+from .utils.quiz_generator import generate_quiz
 
 app = FastAPI(
     title="AI Learning Companion",
@@ -563,6 +564,18 @@ def analysis(video_id: str):
 def intelligent_analysis(video_id: str):
     try:
         return analyze_educational_content(video_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v3/quiz/generate/{video_id}")
+def quiz_generate(video_id: str, num_questions: int = 5):
+    try:
+        if num_questions < 1:
+            num_questions = 1
+        if num_questions > 10:
+            num_questions = 10
+        return generate_quiz(video_id, num_questions=num_questions)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

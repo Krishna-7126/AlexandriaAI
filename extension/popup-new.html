@@ -57,6 +57,14 @@
             display: none;
         }
 
+        .full-width {
+            width: 100%;
+        }
+
+        .mt-sm {
+            margin-top: 10px;
+        }
+
         .auth-tabs, .tabs {
             display: flex;
             gap: 8px;
@@ -287,14 +295,14 @@
             <!-- Summary Tab -->
             <div id="summary-tab" class="tab-content active">
                 <div id="summaryContent">
-                    <button id="generateSummary" class="action-btn primary" style="width: 100%;">📝 Generate Summary</button>
+                    <button id="generateSummary" class="action-btn primary full-width">📝 Generate Summary</button>
                 </div>
             </div>
 
             <!-- Q&A Tab -->
             <div id="qa-tab" class="tab-content hidden">
                 <input type="text" id="questionInput" placeholder="Ask a question about the video...">
-                <button id="askBtn" class="action-btn primary" style="width: 100%;">💬 Ask</button>
+                <button id="askBtn" class="action-btn primary full-width">💬 Ask</button>
                 <div id="qaContent" class="output-area"></div>
             </div>
 
@@ -305,15 +313,15 @@
                     <option value="docx">📑 Word Document</option>
                     <option value="notion">🔗 Notion</option>
                 </select>
-                <button id="exportBtn" class="action-btn primary" style="width: 100%; margin-top: 10px;">Export</button>
-                <div id="exportContent" class="output-area" style="display: none;"></div>
+                <button id="exportBtn" class="action-btn primary full-width mt-sm">Export</button>
+                <div id="exportContent" class="output-area hidden"></div>
             </div>
 
             <!-- Tools Tab -->
             <div id="tools-tab" class="tab-content hidden">
                 <div class="tool-group">
                     <h3>🌐 Translate Summary</h3>
-                    <select id="languageSelect" style="width: 100%;">
+                    <select id="languageSelect" class="full-width">
                         <option value="en">English</option>
                         <option value="es">Español</option>
                         <option value="fr">Français</option>
@@ -322,18 +330,18 @@
                         <option value="zh">中文</option>
                         <option value="ja">日本語</option>
                     </select>
-                    <button id="translateBtn" class="action-btn primary" style="width: 100%; margin-top: 10px;">Translate</button>
+                    <button id="translateBtn" class="action-btn primary full-width mt-sm">Translate</button>
                 </div>
 
                 <div class="tool-group">
                     <h3>📚 Save to Library</h3>
-                    <button id="saveVideoBtn" class="action-btn primary" style="width: 100%;">Save This Video</button>
+                    <button id="saveVideoBtn" class="action-btn primary full-width">Save This Video</button>
                 </div>
 
                 <div class="tool-group">
                     <h3>🎙️ Add Podcast/Spotify</h3>
-                    <input type="text" id="streamingUrl" placeholder="Paste Spotify or podcast URL" style="width: 100%;">
-                    <button id="addStreamingBtn" class="action-btn primary" style="width: 100%; margin-top: 10px;">Add to Queue</button>
+                    <input type="text" id="streamingUrl" placeholder="Paste Spotify or podcast URL" class="full-width">
+                    <button id="addStreamingBtn" class="action-btn primary full-width mt-sm">Add to Queue</button>
                 </div>
             </div>
         </div>
