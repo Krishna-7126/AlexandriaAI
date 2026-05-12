@@ -41,8 +41,24 @@ def _configure_model():
     return genai_module.GenerativeModel(model_name)
 
 
-def generate_text(prompt: str, *, temperature: float = 0.2, max_output_tokens: int = 512) -> str | None:
-    model = _configure_model()
+def _configure_named_model(model_name: str | None = None):
+    api_key = _get_api_key()
+    genai_module = _get_genai()
+    if not genai_module or not api_key:
+        return None
+    genai_module.configure(api_key=api_key)
+    resolved_model = model_name or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    return genai_module.GenerativeModel(resolved_model)
+
+
+def generate_text(
+    prompt: str,
+    *,
+    temperature: float = 0.2,
+    max_output_tokens: int = 512,
+    model_name: str | None = None,
+) -> str | None:
+    model = _configure_named_model(model_name)
     if model is None:
         return None
     response = model.generate_content(

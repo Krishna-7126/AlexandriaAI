@@ -121,6 +121,50 @@ export async function getQuality(videoId) {
   return await response.json();
 }
 
+export async function generateQuiz(videoId, numQuestions = 5, userId = null, sessionId = null) {
+  const params = new URLSearchParams();
+  params.set('num_questions', String(numQuestions));
+  if (userId) params.set('user_id', userId);
+  if (sessionId) params.set('session_id', sessionId);
+
+  const response = await fetch(`${API_BASE}/v3/quiz/generate/${videoId}?${params.toString()}`);
+  return await parseResponse(response, 'Failed to generate quiz');
+}
+
+export async function getNextQuiz(videoId = null, userId = null, sessionId = null) {
+  const params = new URLSearchParams();
+  if (videoId) params.set('video_id', videoId);
+  if (userId) params.set('user_id', userId);
+  if (sessionId) params.set('session_id', sessionId);
+
+  const response = await fetch(`${API_BASE}/v3/quiz/get-next?${params.toString()}`);
+  return await parseResponse(response, 'Failed to get next quiz question');
+}
+
+export async function submitQuizAnswer(questionId, answer, userId = null, sessionId = null) {
+  const response = await fetch(`${API_BASE}/v3/quiz/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      question_id: questionId,
+      answer,
+      user_id: userId,
+      session_id: sessionId,
+    }),
+  });
+  return await parseResponse(response, 'Failed to submit quiz answer');
+}
+
+export async function getQuizPerformance(videoId = null, userId = null, sessionId = null) {
+  const params = new URLSearchParams();
+  if (videoId) params.set('video_id', videoId);
+  if (userId) params.set('user_id', userId);
+  if (sessionId) params.set('session_id', sessionId);
+
+  const response = await fetch(`${API_BASE}/v3/quiz/performance?${params.toString()}`);
+  return await parseResponse(response, 'Failed to get quiz performance');
+}
+
 // Helper to handle the NDJSON streaming response from /ask/stream
 export async function askQuestionStream(videoId, question, sessionId, onChunk, onTimestamps, onDone, onError) {
   try {

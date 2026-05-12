@@ -8,6 +8,8 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
   const [isAsking, setIsAsking] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}`);
   const messagesEndRef = useRef(null);
+  const answerCacheRef = useRef(new Map());
+  const pendingQuestionRef = useRef('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,12 +19,41 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
     scrollToBottom();
   }, [chatHistory]);
 
+  const normalizeQuestion = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  const appendCachedExchange = (currentQuestion, cached) => {
+    const userMsgId = Date.now().toString();
+    const aiMsgId = (Date.now() + 1).toString();
+    setChatHistory(prev => [
+      ...prev,
+      { id: userMsgId, role: 'user', content: currentQuestion },
+      { id: aiMsgId, role: 'ai', content: cached.answer, timestamps: cached.timestamps || [] },
+    ]);
+    if ((cached.timestamps || []).length > 0 && onTimestampClick) {
+      onTimestampClick(cached.timestamps[0]);
+    }
+  };
+
   const handleAsk = async (e) => {
     e.preventDefault();
     if (!question.trim() || !videoId) return;
+    if (isAsking) return;
 
     const currentQuestion = question;
+    const questionKey = normalizeQuestion(currentQuestion);
+    const cached = answerCacheRef.current.get(questionKey);
+    if (cached?.answer) {
+      setQuestion('');
+      appendCachedExchange(currentQuestion, cached);
+      return;
+    }
+
+    if (pendingQuestionRef.current === questionKey) {
+      return;
+    }
+
     setQuestion('');
+    pendingQuestionRef.current = questionKey;
     
     // Add user question to history
     const userMsgId = Date.now().toString();
@@ -49,6 +80,10 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
         );
       },
       (timestamps) => {
+        answerCacheRef.current.set(questionKey, {
+          answer: accumulatedContent,
+          timestamps: [...timestamps],
+        });
         setChatHistory(prev => 
           prev.map(msg => 
             msg.id === aiMsgId ? { ...msg, timestamps: [...(msg.timestamps || []), ...timestamps] } : msg
@@ -61,9 +96,17 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
       },
       () => {
         setIsAsking(false);
+        pendingQuestionRef.current = '';
+        if (accumulatedContent) {
+          answerCacheRef.current.set(questionKey, {
+            answer: accumulatedContent,
+            timestamps: [],
+          });
+        }
       },
       (error) => {
         setIsAsking(false);
+        pendingQuestionRef.current = '';
         setChatHistory(prev => 
           prev.map(msg => 
             msg.id === aiMsgId ? { ...msg, content: accumulatedContent + '\n\n**Error:** ' + error.message } : msg

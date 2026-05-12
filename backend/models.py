@@ -1,7 +1,7 @@
 """
 Database models for Alexandria AI Learning Companion
 """
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer, Text, ForeignKey
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer, Float, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -79,6 +79,48 @@ class Export(Base):
     
     # Relationships
     user = relationship("User", back_populates="exports")
+
+
+class QuizQuestion(Base):
+    """Stored quiz questions for spaced repetition and performance tracking"""
+    __tablename__ = "quiz_questions"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=True)
+    session_id = Column(String, index=True, nullable=True)
+    video_id = Column(String, index=True)
+    concept = Column(String, nullable=True)
+    question_type = Column(String, default="mcq")
+    question_text = Column(Text)
+    correct_answer = Column(Text)
+    options_json = Column(Text, nullable=True)
+    explanation = Column(Text, nullable=True)
+    timestamp = Column(Float, default=0.0)
+    difficulty = Column(String, default="medium")
+    attempts = Column(Integer, default=0)
+    correct_attempts = Column(Integer, default=0)
+    ease_factor = Column(Float, default=2.5)
+    interval_days = Column(Integer, default=0)
+    next_review_at = Column(DateTime, default=datetime.utcnow)
+    last_review_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class QuizResponse(Base):
+    """Individual quiz attempts and answer history"""
+    __tablename__ = "quiz_responses"
+
+    id = Column(String, primary_key=True, index=True)
+    question_id = Column(String, ForeignKey("quiz_questions.id"), index=True)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=True)
+    session_id = Column(String, index=True, nullable=True)
+    video_id = Column(String, index=True)
+    answer = Column(Text)
+    is_correct = Column(Boolean, default=False)
+    score = Column(Integer, default=0)
+    feedback = Column(Text, nullable=True)
+    answered_at = Column(DateTime, default=datetime.utcnow)
 
 
 # Create all tables

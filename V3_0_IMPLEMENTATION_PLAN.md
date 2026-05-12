@@ -124,6 +124,7 @@
 - Generates explanation + evidence
 - Handles follow-up questions
 - Maintains conversation context
+- Reuses cached answers for repeated questions in the same session/video so the model is only called when needed
 - **Impact:** Feels like talking to a teacher
 
 #### 6. **Automatic Quiz Generation**

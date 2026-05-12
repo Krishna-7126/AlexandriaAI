@@ -9,8 +9,11 @@
 - [x] Educational content analysis layer for score, teaching mode, objectives, concepts, and smart timestamps
 - [x] Multi-level summaries now use educational analysis first
 - [x] Q&A now uses educational context and concept-aware prompting
+- [x] Q&A duplicate-request cache added so repeated questions reuse the last answer instead of re-calling the model
 - [x] Frontend now surfaces educational score, teaching mode, objectives, and key concepts
 - [x] Quiz generation endpoint added for concept-based practice
+- [x] Quiz lifecycle added: generate, get-next, submit, and performance endpoints
+- [x] Quiz panel added to the frontend for active recall practice
 
 ---
 
@@ -186,8 +189,8 @@
   - [ ] `create_difficulty_progression(concepts)` - Order by difficulty
   - [ ] `generate_answer_explanations(question, answer)` - Explain why
 - [ ] Database schema:
-  - [ ] `quiz_questions` table: id, video_id, concept_id, type, question, correct_answer, options
-  - [ ] `quiz_responses` table: id, user_id, question_id, answer, is_correct, timestamp
+  - [x] `quiz_questions` table: id, video_id, concept_id, type, question, correct_answer, options
+  - [x] `quiz_responses` table: id, user_id, question_id, answer, is_correct, timestamp
 - [ ] Prompts for quality:
   - [ ] "Generate 4 multiple choice options for: [concept]"
   - [ ] "Create a T/F question that tests: [concept]"
@@ -196,13 +199,13 @@
 
 #### Day 17: Quiz Endpoints & Spaced Repetition
 - [x] Create `/v3/quiz/generate/{video_id}` endpoint
-- [ ] Create `/v3/quiz/get-next` endpoint (spaced repetition algorithm)
-- [ ] Create `/v3/quiz/submit` endpoint (check answer)
+- [x] Create `/v3/quiz/get-next` endpoint (spaced repetition algorithm)
+- [x] Create `/v3/quiz/submit` endpoint (check answer)
 - [ ] Implement spaced repetition scheduling:
-  - [ ] Track attempts and scores
-  - [ ] Use SM-2 algorithm (scheduling)
-  - [ ] Return next review date
-- [ ] Create `/v3/quiz/performance` endpoint (analytics)
+  - [x] Track attempts and scores
+  - [x] Use SM-2 algorithm (scheduling)
+  - [x] Return next review date
+- [x] Create `/v3/quiz/performance` endpoint (analytics)
 
 #### Day 18: Learning Objectives Extraction
 - [ ] Create `objectives_extractor.py`:

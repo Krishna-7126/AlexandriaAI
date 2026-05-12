@@ -18,13 +18,14 @@ from datetime import datetime
 from .ingest import ingest_video, ingest_assemblyai_file
 from .rag import ask_question
 from .summarizer import get_summary, get_topic_summaries, get_last_minutes_summary
-from .session import get_session_history, add_to_session
+from .session import get_session_history, add_to_session, get_cached_answer, cache_answer
 from .utils.transcript_store import get_chunks
 from .utils.quick_summary import generate_quick_summary, is_gemini_error
 from .auth_routes import router as auth_router
 from .features_routes import router as features_router
 from .utils.education_ai import analyze_educational_content, get_smart_timestamps
-from .utils.quiz_generator import generate_quiz
+from .utils.quiz_service import generate_or_get_quiz, get_next_question, submit_answer, get_performance
+from .models import SessionLocal
 
 app = FastAPI(
     title="AI Learning Companion",
@@ -58,6 +59,20 @@ class AskRequest(BaseModel):
     video_id: str
     question: str
     session_id: str = None
+
+
+class QuizGenerateRequest(BaseModel):
+    video_id: str
+    num_questions: int = 5
+    user_id: str | None = None
+    session_id: str | None = None
+
+
+class QuizSubmitRequest(BaseModel):
+    question_id: str
+    answer: str
+    user_id: str | None = None
+    session_id: str | None = None
 
 
 def _set_ingest_job(job_id: str, payload: dict):
@@ -334,10 +349,19 @@ def ingest_status(job_id: str):
 def ask(request: AskRequest):
     try:
         print(f"Ask request received for video_id={request.video_id} question={request.question}")
+        cached = get_cached_answer(request.session_id, request.video_id, request.question)
+        if cached:
+            return {
+                "answer": cached.get("answer", ""),
+                "timestamps": cached.get("timestamps", []),
+                "session_id": cached.get("session_id") or request.session_id or str(uuid.uuid4()),
+                "status": "cached",
+            }
         history = get_session_history(request.session_id) if request.session_id else []
         answer, timestamps = ask_question(request.video_id, request.question, history)
         if request.session_id:
             add_to_session(request.session_id, request.question, answer)
+        cache_answer(request.session_id, request.video_id, request.question, answer, timestamps)
         return {
             "answer": answer,
             "timestamps": timestamps,
@@ -352,6 +376,15 @@ def ask(request: AskRequest):
 def ask_stream(request: AskRequest):
     try:
         print(f"Stream ask request for video_id={request.video_id}")
+        cached = get_cached_answer(request.session_id, request.video_id, request.question)
+        if cached:
+            def cached_generate():
+                for char in str(cached.get("answer", "")):
+                    yield json.dumps({"chunk": char}) + "\n"
+                yield json.dumps({"timestamps": cached.get("timestamps", []), "done": True}) + "\n"
+
+            return StreamingResponse(cached_generate(), media_type="application/x-ndjson")
+
         history = get_session_history(request.session_id) if request.session_id else []
         answer, timestamps = ask_question(request.video_id, request.question, history)
         
@@ -362,6 +395,7 @@ def ask_stream(request: AskRequest):
         
         if request.session_id:
             add_to_session(request.session_id, request.question, answer)
+        cache_answer(request.session_id, request.video_id, request.question, answer, timestamps)
         
         return StreamingResponse(generate(), media_type="application/x-ndjson")
     except Exception as e:
@@ -569,13 +603,59 @@ def intelligent_analysis(video_id: str):
 
 
 @app.get("/v3/quiz/generate/{video_id}")
-def quiz_generate(video_id: str, num_questions: int = 5):
+def quiz_generate(video_id: str, num_questions: int = 5, user_id: str | None = None, session_id: str | None = None):
     try:
         if num_questions < 1:
             num_questions = 1
         if num_questions > 10:
             num_questions = 10
-        return generate_quiz(video_id, num_questions=num_questions)
+        db = SessionLocal()
+        try:
+            return generate_or_get_quiz(db, video_id, num_questions=num_questions, user_id=user_id, session_id=session_id)
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v3/quiz/get-next")
+def quiz_get_next(video_id: str | None = None, user_id: str | None = None, session_id: str | None = None):
+    try:
+        db = SessionLocal()
+        try:
+            return get_next_question(db, video_id=video_id, user_id=user_id, session_id=session_id)
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/v3/quiz/submit")
+def quiz_submit(request: QuizSubmitRequest):
+    try:
+        db = SessionLocal()
+        try:
+            return submit_answer(
+                db,
+                question_id=request.question_id,
+                answer=request.answer,
+                user_id=request.user_id,
+                session_id=request.session_id,
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v3/quiz/performance")
+def quiz_performance(video_id: str | None = None, user_id: str | None = None, session_id: str | None = None):
+    try:
+        db = SessionLocal()
+        try:
+            return get_performance(db, video_id=video_id, user_id=user_id, session_id=session_id)
+        finally:
+            db.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

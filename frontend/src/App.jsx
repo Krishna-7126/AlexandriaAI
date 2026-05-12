@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import IngestPanel from './components/IngestPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ChatPanel from './components/ChatPanel';
+import QuizPanel from './components/QuizPanel';
 import SummaryDashboard from './components/SummaryDashboard';
 import Timeline from './components/Timeline';
 import './index.css';
@@ -314,8 +315,11 @@ function App() {
               </div>
 
               {/* Right Column: Chat */}
-              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 150px)', minWidth: 0, position: 'sticky', top: '100px' }}>
-                <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, position: 'sticky', top: '100px' }}>
+                <div style={{ height: 'calc(100vh - 150px)', minHeight: '420px' }}>
+                  <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                </div>
+                <QuizPanel videoId={videoId} isProcessing={isProcessing} />
               </div>
             </div>
           </section>

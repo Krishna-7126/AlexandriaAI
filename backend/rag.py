@@ -1,4 +1,5 @@
 import os
+import re
 from .utils.similarity import keyword_similarity
 from .utils.transcript_store import get_chunks
 from .utils.gemini_client import generate_text, gemini_available
@@ -31,11 +32,15 @@ def _build_answer_prompt(question, context, history):
             turns.append(f"Q: {item.get('question', '')}\nA: {item.get('answer', '')}")
         history_text = "\n\nPrevious conversation:\n" + "\n\n".join(turns)
     return (
-        "You are Alexandria, an intelligent educational AI tutor. "
-        "Answer the learner using the transcript context, the educational analysis, and the conversation history. "
-        "Focus on teaching clearly, not copying the transcript. "
-        "If the answer is supported, explain it in 2-5 clear sentences and mention the relevant teaching moment when helpful. "
-        "If the transcript does not support the answer, say so honestly and suggest what concept the learner should review next.\n\n"
+        "You are Alexandria, an expert educational tutor for learners.\n"
+        "Use the transcript context, educational analysis, and conversation history to answer with real understanding.\n"
+        "Do not echo the transcript verbatim. Explain the idea in plain language, define key terms, and connect the answer to the underlying concept.\n"
+        "If the answer is partially supported, say what is supported and what is uncertain. If the transcript does not support the answer, say so clearly and suggest the next concept to study.\n"
+        "Write in a helpful teaching style with this structure when possible:\n"
+        "1. Direct answer\n"
+        "2. Why this is true\n"
+        "3. Evidence from the transcript\n"
+        "4. What to remember next\n\n"
         f"TRANSCRIPT CONTEXT:\n{context}\n\n"
         f"QUESTION: {question}\n"
         f"{history_text}\n\n"
@@ -162,7 +167,7 @@ def ask_question(video_id, question, history=[]):
     elif quality_score == "medium":
         quality_note = "Note: this answer is based on a moderate-confidence transcript.\n\n"
 
-    context = _format_context(selected_chunks)
+    context = _format_context(selected_chunks[:5])
     educational_context = analysis.get('qa_guidance', '') if isinstance(analysis, dict) else ''
     if analysis and isinstance(analysis, dict):
         concept_lines = []
@@ -173,13 +178,21 @@ def ask_question(video_id, question, history=[]):
                 )
         if concept_lines:
             educational_context = educational_context + "\nKey concepts:\n" + "\n".join(concept_lines)
+        objectives = analysis.get('learning_objectives', [])[:4]
+        if objectives:
+            educational_context += "\nLearning objectives:\n" + "\n".join(f"- {item}" for item in objectives)
     answer = None
     if gemini_available():
         prompt = _build_answer_prompt(question, f"{educational_context}\n\n{context}".strip(), history)
         quality_guidance = _build_quality_guidance(quality_score, quality_warnings)
-        prompt = f"{quality_guidance}\n\n{prompt}"
+        prompt = (
+            f"{quality_guidance}\n\n"
+            f"Give a detailed but readable answer. When useful, include a concrete example, analogy, or step-by-step breakdown.\n\n"
+            f"{prompt}"
+        )
         try:
-            answer = generate_text(prompt, temperature=0.3, max_output_tokens=400)
+            model_name = os.getenv("GEMINI_QA_MODEL", os.getenv("GEMINI_MODEL", "gemini-2.5-pro"))
+            answer = generate_text(prompt, temperature=0.25, max_output_tokens=700, model_name=model_name)
         except Exception as e:
             print(f"Gemini QA failed: {e}")
 
@@ -187,11 +200,20 @@ def ask_question(video_id, question, history=[]):
         # Create a concise local answer by extractive-summarizing the selected chunks
         try:
             combined = ' '.join([c.get('text', '') for c in selected_chunks])
-            answer = extractive_summary(combined, num_sentences=2)
+            answer = extractive_summary(combined, num_sentences=3)
         except Exception:
             answer = best_chunk.get('text', '').strip()
     if not answer:
         answer = "I found a relevant section, but the transcript chunk is empty."
+
+    if answer:
+        answer = re.sub(r"\n{3,}", "\n\n", str(answer)).strip()
+        if not any(marker in answer.lower() for marker in ["direct answer", "why this is true", "evidence from the transcript"]):
+            answer = (
+                f"Direct answer:\n{answer}\n\n"
+                "Why this is true:\nThe answer is grounded in the transcript context that matched your question.\n\n"
+                "What to remember next:\nFocus on the concept tied to the highlighted timestamp to retain the bigger idea."
+            )
 
     if quality_note and answer:
         answer = f"{quality_note}{answer}"
