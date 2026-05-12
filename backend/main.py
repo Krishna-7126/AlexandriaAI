@@ -486,10 +486,15 @@ def timestamps(video_id: str):
     try:
         analysis = analyze_educational_content(video_id)
         smart_timestamps = get_smart_timestamps(video_id)
+
+        def _normalize_time(value: object) -> float:
+            numeric = float(value or 0)
+            return round(numeric / 1000.0, 3) if numeric > 10000 else round(numeric, 3)
+
         if smart_timestamps:
             ts = [
                 {
-                    "time": round(float(item.get("timestamp", item.get("time", 0)) or 0), 3),
+                    "time": _normalize_time(item.get("timestamp", item.get("time", 0))),
                     "label": str(item.get("label", "Teaching moment"))[:96],
                     "duration": 0.0,
                     "reason": str(item.get("reason", ""))[:180],
@@ -511,7 +516,7 @@ def timestamps(video_id: str):
                 {
                     # Preserve sub-second precision for jump-to timestamps
                     # Normalize values that are likely in milliseconds (> 10k)
-                    "time": (lambda v: round(v / 1000.0, 3) if v > 10000 else round(v, 3))(float(c.get('start_time', 0.0) or 0.0)),
+                    "time": _normalize_time(c.get('start_time', 0.0)),
                     "label": (c.get('text') or f"Chunk {i + 1}")[:64],
                     "duration": (lambda s, e: round((e - s) / 1000.0, 3) if (e - s) > 10000 else round((e - s), 3))(
                         float(c.get('start_time', 0.0) or 0.0), float(c.get('end_time', 0.0) or 0.0)
@@ -541,7 +546,7 @@ def timestamps(video_id: str):
             raise Exception("No timestamps found")
         ts = [
             {
-                "time": (lambda v: round(v / 1000.0, 3) if v > 10000 else round(v, 3))(float(metadata.get('start_time', 0.0) or 0.0)),
+                "time": _normalize_time(metadata.get('start_time', 0.0)),
                 "label": f"Chunk {i + 1}",
                 "duration": (lambda s, e: round((e - s) / 1000.0, 3) if (e - s) > 10000 else round((e - s), 3))(
                     float(metadata.get('start_time', 0.0) or 0.0), float(metadata.get('end_time', 0.0) or 0.0)

@@ -1,24 +1,56 @@
-"""Smart timestamping algorithms (v3 stub).
+"""Smart timestamping algorithms for v3 educational analysis.
 
-Provide helpers to detect concept transitions and teaching moments.
+These heuristics look for concept changes, teaching cues, and chapter-sized
+blocks so timestamp output is more useful even without an LLM pass.
 """
 from typing import List, Dict, Any
+
+
+_TEACHING_CUES = {
+    "remember",
+    "important",
+    "key point",
+    "the takeaway",
+    "for example",
+    "notice",
+    "in summary",
+    "first",
+    "next",
+    "finally",
+}
+
+
+def _chunk_start(chunk: Dict[str, Any], fallback: float) -> float:
+    return float(chunk.get("start", chunk.get("start_time", fallback)) or fallback)
+
+
+def _chunk_end(chunk: Dict[str, Any], fallback: float) -> float:
+    return float(chunk.get("end", chunk.get("end_time", fallback)) or fallback)
+
+
+def _keywords(text: str) -> set[str]:
+    return {
+        word.strip(".,:;!?()[]{}\"'`").lower()
+        for word in str(text or "").split()
+        if len(word.strip(".,:;!?()[]{}\"'`")) > 4
+    }
 
 
 def detect_concept_transitions(transcript_chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Return candidate transition timestamps based on text changes."""
     results = []
     previous_keywords = set()
-    for c in transcript_chunks[:20]:
+    for index, c in enumerate(transcript_chunks[:40]):
         text = str(c.get("text") or "")
-        words = {word.strip(".,:;!?()[]{}").lower() for word in text.split() if len(word) > 4}
+        words = _keywords(text)
         new_keywords = words - previous_keywords
-        if new_keywords:
+        cue_hit = any(cue in text.lower() for cue in _TEACHING_CUES)
+        if index == 0 or new_keywords or cue_hit:
             results.append({
-                "timestamp": float(c.get("start", c.get("start_time", 0))),
+                "timestamp": _chunk_start(c, 0.0),
                 "label": text[:80] or "Teaching moment",
-                "reason": "new_concept_introduced",
-                "confidence": min(0.95, 0.45 + len(new_keywords) / 25.0),
+                "reason": "new_concept_introduced" if new_keywords else "teaching_cue" if cue_hit else "chapter_start",
+                "confidence": min(0.97, 0.5 + (len(new_keywords) / 20.0) + (0.12 if cue_hit else 0.0)),
             })
         previous_keywords |= words
     return results
@@ -26,7 +58,11 @@ def detect_concept_transitions(transcript_chunks: List[Dict[str, Any]]) -> List[
 
 def identify_teaching_moments(transcript_chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Return teaching moments; stub reuses detect_concept_transitions."""
-    return detect_concept_transitions(transcript_chunks)
+    moments = []
+    for item in detect_concept_transitions(transcript_chunks):
+        if item.get("reason") in {"new_concept_introduced", "teaching_cue"}:
+            moments.append(item)
+    return moments
 
 
 def generate_smart_chapters(transcript_chunks: List[Dict[str, Any]], min_length: int = 300, max_length: int = 900) -> List[Dict[str, Any]]:
@@ -34,15 +70,21 @@ def generate_smart_chapters(transcript_chunks: List[Dict[str, Any]], min_length:
     chapters = []
     if not transcript_chunks:
         return chapters
-    current_start = float(transcript_chunks[0].get('start', transcript_chunks[0].get('start_time', 0)) or 0)
+    current_start = _chunk_start(transcript_chunks[0], 0.0)
     buffer_words = 0
+    chapter_texts: list[str] = []
     for i, c in enumerate(transcript_chunks):
-        buffer_words += len(str(c.get("text") or "").split())
+        chunk_text = str(c.get("text") or "")
+        chapter_texts.append(chunk_text)
+        buffer_words += len(chunk_text.split())
         if buffer_words >= min_length or i == len(transcript_chunks) - 1:
-            end = float(c.get('end', c.get('end_time', current_start + max_length)) or 0)
-            chapters.append({"start": current_start, "end": end, "label": f"Chapter {len(chapters)+1}", "confidence": 0.7})
+            end = _chunk_end(c, current_start + max_length)
+            text_blob = " ".join(chapter_texts).strip()
+            label = text_blob[:80] if text_blob else f"Chapter {len(chapters) + 1}"
+            chapters.append({"start": current_start, "end": end, "label": label, "confidence": 0.72 if buffer_words >= min_length else 0.6})
             current_start = end
             buffer_words = 0
+            chapter_texts = []
     return chapters
 
 
@@ -57,4 +99,12 @@ def label_chapters_by_concept(chapters: List[Dict[str, Any]], concepts: List[Dic
 
 
 def create_checkpoint_markers(chapters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [{"timestamp": chapter.get("start", 0), "label": chapter.get("label", "Checkpoint"), "type": "quiz_checkpoint"} for chapter in chapters]
+    return [
+        {
+            "timestamp": chapter.get("start", 0),
+            "label": chapter.get("label", "Checkpoint"),
+            "type": "quiz_checkpoint",
+            "chapter_end": chapter.get("end", chapter.get("start", 0)),
+        }
+        for chapter in chapters
+    ]

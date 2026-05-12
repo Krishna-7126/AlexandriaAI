@@ -688,3 +688,17 @@ header {
     grid-template-columns: 1fr;
   }
 }
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.active-tab {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+
+.spinner { display: inline-block; }

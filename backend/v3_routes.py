@@ -17,6 +17,8 @@ from .v3_features.concept_extractor import extract_concepts_hierarchical, detect
 from .v3_features.summarizer_v2 import summarize_eli5, summarize_standard, summarize_expert, summarize_tldr, summarize_visual
 from .v3_features.rag_v2 import generate_answer_with_reasoning, multi_hop_reasoning, cite_sources, maintain_conversation_context
 from .v3_features.multi_pass_analyzer import run_all_passes
+from .v3_features.objectives_extractor import build_objectives_profile
+from .v3_features.notes_generator import build_study_notes
 
 
 router = APIRouter(prefix="/v3", tags=["v3"])
@@ -160,12 +162,12 @@ def qa_smart(request: V3QuestionRequest):
 @router.get("/objectives/{video_id}")
 def objectives(video_id: str):
     transcript = _transcript_for_video(video_id)
-    objectives = extract_implied_objectives(transcript)
+    concepts = extract_concepts_hierarchical(transcript)
+    profile = build_objectives_profile(transcript, concepts)
     return {
         "video_id": video_id,
-        "objectives": objectives,
-        "checklist": [{"objective": item, "checked": False} for item in objectives],
-        "blooms": ["understand" for _ in objectives],
+        **profile,
+        "concept_count": len(concepts),
     }
 
 
@@ -189,14 +191,19 @@ def difficulty(video_id: str):
 def study_notes(video_id: str):
     transcript = _transcript_for_video(video_id)
     concepts_tree = extract_concepts_hierarchical(transcript)
-    concept_names = [item.get("name", "") for item in concepts_tree]
+    objectives = build_objectives_profile(transcript, concepts_tree).get("objectives", [])
+    notes = build_study_notes(transcript, concepts_tree, objectives)
     return {
         "video_id": video_id,
-        "cornell": f"Key ideas: {', '.join(concept_names)}\nSummary: {summarize_standard(transcript)}",
-        "summary_boxes": concept_names,
-        "key_terms": concept_names,
+        "summary": notes["summary"],
+        "outline": notes["outline"],
+        "cornell": notes["cornell"],
+        "glossary": notes["glossary"],
+        "flashcards": notes["flashcards"],
+        "summary_boxes": notes["key_points"],
+        "key_terms": notes["key_terms"],
+        "practice_problems": notes["practice_problems"],
         "visual_summaries": summarize_visual(transcript),
-        "practice_problems": [f"Explain {name} in your own words" for name in concept_names],
     }
 
 

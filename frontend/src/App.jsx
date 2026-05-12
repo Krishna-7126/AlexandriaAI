@@ -8,6 +8,14 @@ import QuizPanel from './components/QuizPanel';
 import SummaryDashboard from './components/SummaryDashboard';
 import Timeline from './components/Timeline';
 import './index.css';
+import { Suspense, lazy } from 'react';
+import LoadingSpinner from './components/LoadingSpinner';
+
+const ObjectivesPanel = lazy(() => import('./components/ObjectivesPanel'));
+const StudyNotesPanel = lazy(() => import('./components/StudyNotesPanel'));
+const ConceptsPanel = lazy(() => import('./components/ConceptsPanel'));
+const SummariesPanel = lazy(() => import('./components/SummariesPanel'));
+const AnalyticsPanel = lazy(() => import('./components/AnalyticsPanel'));
 
 const FAQItem = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +42,7 @@ function App() {
   const [ingestInfo, setIngestInfo] = useState(null);
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
+  const [selectedPanel, setSelectedPanel] = useState('chat');
 
   const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
@@ -318,6 +327,30 @@ function App() {
               <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, position: 'sticky', top: '100px' }}>
                 <div style={{ height: 'calc(100vh - 150px)', minHeight: '420px' }}>
                   <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+
+                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                    {[
+                      ['chat','Chat'],
+                      ['objectives','Objectives'],
+                      ['notes','Notes'],
+                      ['concepts','Concepts'],
+                      ['summaries','Summaries'],
+                      ['analytics','Analytics'],
+                    ].map(([key, label]) => (
+                      <button key={key} onClick={() => setSelectedPanel(key)} className={selectedPanel===key? 'active-tab':''} style={{ padding: '0.4rem 0.6rem', borderRadius: 8 }}>{label}</button>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: '0.75rem', border: '1px solid var(--outline-variant)', borderRadius: 12, overflow: 'hidden' }}>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      {selectedPanel === 'chat' && <div />}
+                      {selectedPanel === 'objectives' && <ObjectivesPanel videoId={videoId} />}
+                      {selectedPanel === 'notes' && <StudyNotesPanel videoId={videoId} />}
+                      {selectedPanel === 'concepts' && <ConceptsPanel videoId={videoId} />}
+                      {selectedPanel === 'summaries' && <SummariesPanel videoId={videoId} />}
+                      {selectedPanel === 'analytics' && <AnalyticsPanel userId={'me'} />}
+                    </Suspense>
+                  </div>
                 </div>
                 <QuizPanel videoId={videoId} isProcessing={isProcessing} />
               </div>

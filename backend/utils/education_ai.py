@@ -58,6 +58,11 @@ def _clip(text: str, limit: int = 240) -> str:
     return clipped.rstrip(".,;:") + "."
 
 
+def _normalize_timestamp(value: Any) -> float:
+    numeric = float(value or 0)
+    return round(numeric / 1000.0, 3) if numeric > 10000 else round(numeric, 3)
+
+
 def _clean_text(text: str) -> str:
     text = re.sub(r"<\d{2}:\d{2}:\d{2}\.\d{3}>", " ", str(text or ""))
     text = re.sub(r"</?c(?:\.[^>]*)?>", " ", text)
@@ -163,7 +168,7 @@ def _fallback_concepts(chunks: list[dict[str, Any]], limit: int = 6) -> list[dic
         concepts.append(
             {
                 "name": title,
-                "timestamp": round(float(group[0].get("start", 0) or 0), 3),
+                "timestamp": _normalize_timestamp(group[0].get("start", 0)),
                 "importance": 0.55,
                 "why_it_matters": _clip(extractive_summary(group_text, num_sentences=2), 180),
             }
@@ -185,7 +190,7 @@ def _fallback_timestamps(chunks: list[dict[str, Any]], concepts: list[dict[str, 
             label = concepts[index].get("name", label)
         timestamps.append(
             {
-                "timestamp": round(float(group[0].get("start", 0) or 0), 3),
+                "timestamp": _normalize_timestamp(group[0].get("start", 0)),
                 "label": label or f"Concept {index + 1}",
                 "reason": _clip(extractive_summary(group_text, num_sentences=2), 140),
             }
@@ -409,7 +414,7 @@ def get_recent_learning_summary(video_id: str, minutes: int = 5) -> dict[str, An
 
     return {
         "summary": _clip(summary, 700),
-        "timestamp": round(float(relevant_chunks[0].get("start", 0) or 0), 3),
+        "timestamp": _normalize_timestamp(relevant_chunks[0].get("start", 0)),
     }
 
 

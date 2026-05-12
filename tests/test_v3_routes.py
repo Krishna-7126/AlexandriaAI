@@ -33,6 +33,27 @@ def test_v3_concepts_and_summary_endpoints():
     assert summary.json()["summary"]
 
 
+def test_v3_objectives_endpoint():
+    response = client.get("/v3/objectives/v3-test-video")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["video_id"] == "v3-test-video"
+    assert body["objectives"]
+    assert body["checklist"]
+    assert len(body["objectives"]) == len(body["blooms"]) == len(body["coverage"])
+
+
+def test_v3_study_notes_endpoint():
+    response = client.get("/v3/study-notes/v3-test-video")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["video_id"] == "v3-test-video"
+    assert body["summary"]
+    assert body["outline"]
+    assert body["glossary"]
+    assert body["flashcards"]
+
+
 def test_v3_profile_preferences_roundtrip():
     post = client.post("/v3/profile/preferences", json={"user_id": "u1", "learning_style": "visual", "difficulty_preference": "beginner", "pace": "normal", "interests": ["testing"], "background_knowledge": "basic"})
     assert post.status_code == 200
