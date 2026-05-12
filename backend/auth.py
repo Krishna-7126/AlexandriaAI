@@ -9,7 +9,9 @@ import os
 import uuid
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use pbkdf2_sha256 for new hashes so signup works reliably in this environment.
+# Keep bcrypt in the context so existing hashes remain verifiable.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # JWT settings
 SECRET_KEY = os.getenv("SECRET_KEY", "alexandria-secret-key-change-in-production-12345")

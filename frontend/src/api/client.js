@@ -1,10 +1,31 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001';
 
+// Get JWT token from localStorage
+function getAuthToken() {
+  return localStorage.getItem('alexandria_token');
+}
+
+// Get auth headers with JWT token
+function getAuthHeaders() {
+  const token = getAuthToken();
+  return token
+    ? { 'Authorization': `Bearer ${token}` }
+    : {};
+}
+
 async function parseResponse(response, fallbackMessage) {
   const result = await response.json().catch(() => ({}));
   if (response.ok) {
     return result;
   }
+  
+  // Handle 401 - token expired or invalid
+  if (response.status === 401) {
+    localStorage.removeItem('alexandria_token');
+    localStorage.removeItem('alexandria_user');
+    window.location.href = '/auth/login';
+  }
+  
   throw new Error(result.detail || result.message || fallbackMessage);
 }
 
@@ -12,7 +33,10 @@ export async function ingestVideo(videoUrl) {
   try {
     const response = await fetch(`${API_BASE}/ingest`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
       body: JSON.stringify({ video_url: videoUrl })
     });
     return await parseResponse(response, 'Failed to ingest video');
@@ -31,6 +55,7 @@ export async function ingestFile(file, title = '') {
   try {
     const response = await fetch(`${API_BASE}/ingest-file`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     });
     return await parseResponse(response, 'Failed to ingest file');
@@ -45,7 +70,9 @@ export async function getIngestStatus(jobId) {
 }
 
 export async function getAnalysis(videoId) {
-  const response = await fetch(`${API_BASE}/analysis/${videoId}`);
+  const response = await fetch(`${API_BASE}/analysis/${videoId}`, {
+    headers: getAuthHeaders()
+  });
   if (response.ok) {
     const data = await response.json();
     return {
@@ -92,31 +119,41 @@ export async function getAnalysis(videoId) {
 }
 
 export async function getOverallSummary(videoId) {
-  const response = await fetch(`${API_BASE}/summary/${videoId}`);
+  const response = await fetch(`${API_BASE}/summary/${videoId}`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) throw new Error('Failed to get summary');
   return await response.json();
 }
 
 export async function getTopicSummaries(videoId) {
-  const response = await fetch(`${API_BASE}/topic-summaries/${videoId}`);
+  const response = await fetch(`${API_BASE}/topic-summaries/${videoId}`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) throw new Error('Failed to get topic summaries');
   return await response.json();
 }
 
 export async function getLastMinutesSummary(videoId, minutes = 5) {
-  const response = await fetch(`${API_BASE}/last-minutes/${videoId}?minutes=${minutes}`);
+  const response = await fetch(`${API_BASE}/last-minutes/${videoId}?minutes=${minutes}`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) throw new Error('Failed to get recent summary');
   return await response.json();
 }
 
 export async function getTimestamps(videoId) {
-  const response = await fetch(`${API_BASE}/timestamps/${videoId}`);
+  const response = await fetch(`${API_BASE}/timestamps/${videoId}`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) throw new Error('Failed to get timestamps');
   return await response.json();
 }
 
 export async function getQuality(videoId) {
-  const response = await fetch(`${API_BASE}/quality/${videoId}`);
+  const response = await fetch(`${API_BASE}/quality/${videoId}`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) throw new Error('Failed to get quality');
   return await response.json();
 }
@@ -127,7 +164,9 @@ export async function generateQuiz(videoId, numQuestions = 5, userId = null, ses
   if (userId) params.set('user_id', userId);
   if (sessionId) params.set('session_id', sessionId);
 
-  const response = await fetch(`${API_BASE}/v3/quiz/generate/${videoId}?${params.toString()}`);
+  const response = await fetch(`${API_BASE}/v3/quiz/generate/${videoId}?${params.toString()}`, {
+    headers: getAuthHeaders()
+  });
   return await parseResponse(response, 'Failed to generate quiz');
 }
 
@@ -137,14 +176,19 @@ export async function getNextQuiz(videoId = null, userId = null, sessionId = nul
   if (userId) params.set('user_id', userId);
   if (sessionId) params.set('session_id', sessionId);
 
-  const response = await fetch(`${API_BASE}/v3/quiz/get-next?${params.toString()}`);
+  const response = await fetch(`${API_BASE}/v3/quiz/get-next?${params.toString()}`, {
+    headers: getAuthHeaders()
+  });
   return await parseResponse(response, 'Failed to get next quiz question');
 }
 
 export async function submitQuizAnswer(questionId, answer, userId = null, sessionId = null) {
   const response = await fetch(`${API_BASE}/v3/quiz/submit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
     body: JSON.stringify({
       question_id: questionId,
       answer,
@@ -161,7 +205,9 @@ export async function getQuizPerformance(videoId = null, userId = null, sessionI
   if (userId) params.set('user_id', userId);
   if (sessionId) params.set('session_id', sessionId);
 
-  const response = await fetch(`${API_BASE}/v3/quiz/performance?${params.toString()}`);
+  const response = await fetch(`${API_BASE}/v3/quiz/performance?${params.toString()}`, {
+    headers: getAuthHeaders()
+  });
   return await parseResponse(response, 'Failed to get quiz performance');
 }
 
@@ -170,7 +216,10 @@ export async function askQuestionStream(videoId, question, sessionId, onChunk, o
   try {
     const response = await fetch(`${API_BASE}/ask/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
       body: JSON.stringify({
         video_id: videoId,
         question: question,
@@ -224,4 +273,116 @@ export async function askQuestionStream(videoId, question, sessionId, onChunk, o
   } catch (error) {
     onError(error);
   }
+}
+
+// ===== NEW AUTH FUNCTIONS =====
+
+export async function getCurrentUser() {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    headers: getAuthHeaders()
+  });
+  return await parseResponse(response, 'Failed to get user info');
+}
+
+export async function updateUserPreferences(preferences) {
+  const response = await fetch(`${API_BASE}/auth/preferences`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(preferences)
+  });
+  return await parseResponse(response, 'Failed to update preferences');
+}
+
+// ===== NEW LIBRARY FUNCTIONS =====
+
+export async function saveVideo(videoId, title, collectionId = null) {
+  const response = await fetch(`${API_BASE}/library/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({
+      video_id: videoId,
+      title,
+      collection_id: collectionId
+    })
+  });
+  return await parseResponse(response, 'Failed to save video');
+}
+
+export async function getLibrary() {
+  const response = await fetch(`${API_BASE}/library`, {
+    headers: getAuthHeaders()
+  });
+  return await parseResponse(response, 'Failed to get library');
+}
+
+export async function deleteFromLibrary(savedVideoId) {
+  const response = await fetch(`${API_BASE}/library/${savedVideoId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  });
+  return await parseResponse(response, 'Failed to delete from library');
+}
+
+// ===== EXPORT FUNCTIONS =====
+
+export async function exportContent(videoId, contentType, exportFormat) {
+  const response = await fetch(`${API_BASE}/features/export/summary`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({
+      video_id: videoId,
+      video_title: contentType,
+      export_type: exportFormat,
+      include_qa_history: false
+    })
+  });
+  return await parseResponse(response, 'Failed to export content');
+}
+
+// ===== LANGUAGE FUNCTIONS =====
+
+export async function getSupportedLanguages() {
+  const response = await fetch(`${API_BASE}/features/languages`);
+  if (!response.ok) throw new Error('Failed to get languages');
+  return await response.json();
+}
+
+export async function translateContent(videoId, targetLanguage) {
+  const response = await fetch(`${API_BASE}/features/translate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({
+      video_id: videoId,
+      target_language: targetLanguage
+    })
+  });
+  return await parseResponse(response, 'Failed to translate content');
+}
+
+// ===== ANALYTICS FUNCTIONS =====
+
+export async function getAnalyticsDashboard() {
+  const response = await fetch(`${API_BASE}/analytics/dashboard`, {
+    headers: getAuthHeaders()
+  });
+  return await parseResponse(response, 'Failed to get analytics');
+}
+
+export async function getVideoAnalytics(videoId) {
+  const response = await fetch(`${API_BASE}/analytics/video/${videoId}`, {
+    headers: getAuthHeaders()
+  });
+  return await parseResponse(response, 'Failed to get video analytics');
 }
