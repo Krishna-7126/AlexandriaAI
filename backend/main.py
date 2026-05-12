@@ -26,6 +26,7 @@ from .auth_routes import router as auth_router
 from .features_routes import router as features_router
 from .utils.education_ai import analyze_educational_content, get_smart_timestamps, invalidate_educational_cache
 from .utils.quiz_service import generate_or_get_quiz, get_next_question, submit_answer, get_performance
+from .utils.quiz_generator import generate_quiz_from_text
 from .models import SessionLocal
 from .v3_routes import router as v3_router
 
@@ -629,6 +630,52 @@ def quiz_generate(video_id: str, num_questions: int = 5, user_id: str | None = N
             return generate_or_get_quiz(db, video_id, num_questions=num_questions, user_id=user_id, session_id=session_id)
         finally:
             db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v3/quiz/generate-window/{video_id}")
+def quiz_generate_window(
+    video_id: str,
+    start_time: float = 0,
+    end_time: float = 0,
+    num_questions: int = 5,
+):
+    try:
+        chunks = get_chunks(video_id) or []
+        if num_questions < 1:
+            num_questions = 1
+        if num_questions > 10:
+            num_questions = 10
+
+        start = float(start_time or 0)
+        end = float(end_time or 0)
+        if end <= 0 or end <= start:
+            selected_chunks = chunks
+            title_hint = f"Full video quiz ({video_id})"
+        else:
+            selected_chunks = [
+                chunk
+                for chunk in chunks
+                if float(chunk.get("start", chunk.get("start_time", 0)) or 0) < end
+                and float(chunk.get("end", chunk.get("end_time", 0)) or 0) > start
+            ]
+            title_hint = f"{start:.0f}s - {end:.0f}s"
+
+        if not selected_chunks:
+            raise HTTPException(status_code=404, detail="No transcript content found for the selected time range")
+
+        transcript_text = " ".join(str(chunk.get("text", "")).strip() for chunk in selected_chunks if chunk.get("text"))
+        if not transcript_text.strip():
+            raise HTTPException(status_code=404, detail="No transcript text available for the selected time range")
+
+        return {
+            "video_id": video_id,
+            "time_window": {"start_time": start, "end_time": end},
+            **generate_quiz_from_text(transcript_text, num_questions=num_questions, title_hint=title_hint),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from .education_ai import analyze_educational_content
+from .summary_helper import extractive_summary
 from .gemini_client import generate_text, gemini_available
 
 
@@ -154,4 +155,73 @@ def generate_quiz(video_id: str, num_questions: int = 5) -> dict[str, Any]:
         "teaching_mode": analysis.get("teaching_mode", "mixed"),
         "questions": questions[:num_questions],
         "question_count": min(num_questions, len(questions)),
+    }
+
+
+def _segment_concepts_from_text(transcript_text: str, limit: int = 6) -> list[dict[str, Any]]:
+    sentences = [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", transcript_text) if sentence.strip()]
+    concepts: list[dict[str, Any]] = []
+    for index, sentence in enumerate(sentences[:limit]):
+        short_name = _sanitize_options([extractive_summary(sentence, num_sentences=1) or sentence[:80]])[0]
+        concepts.append(
+            {
+                "name": short_name or f"Segment {index + 1}",
+                "timestamp": float(index * 30),
+                "why_it_matters": extractive_summary(sentence, num_sentences=2) or sentence,
+            }
+        )
+    return concepts
+
+
+def generate_quiz_from_text(transcript_text: str, num_questions: int = 5, title_hint: str | None = None) -> dict[str, Any]:
+    transcript_text = re.sub(r"\s+", " ", str(transcript_text or "")).strip()
+    if not transcript_text:
+        return {
+            "status": "no_data",
+            "questions": [],
+            "message": "No transcript content available for this segment.",
+        }
+
+    concepts = _segment_concepts_from_text(transcript_text, limit=max(3, num_questions))
+    fallback_questions = [_fallback_question(concept, index) for index, concept in enumerate(concepts[:num_questions])]
+    questions = fallback_questions
+    status = "fallback"
+
+    if gemini_available():
+        prompt = (
+            "You are Alexandria, an educational quiz generator.\n"
+            f"Create {num_questions} quiz questions from this transcript segment{f' ({title_hint})' if title_hint else ''}.\n"
+            "Focus only on the supplied segment. Use only concepts present in the transcript.\n"
+            "Return ONLY valid JSON as an array of objects with keys: type, concept, question, options, answer, explanation, timestamp.\n"
+            "Types should be chosen from mcq, true_false, fill_blank, short_answer.\n"
+            "For mcq, provide exactly 4 options. For true_false, use two options: True and False.\n\n"
+            f"TRANSCRIPT SEGMENT:\n{transcript_text[:4000]}\n\n"
+            "JSON:"
+        )
+        try:
+            raw = generate_text(prompt, temperature=0.25, max_output_tokens=900)
+            parsed = _coerce_quiz(raw or "")
+            if parsed:
+                for index, item in enumerate(parsed[:num_questions]):
+                    if not item.get("question"):
+                        continue
+                    if item.get("type") == "mcq" and len(item.get("options", [])) < 4:
+                        item["options"] = _sanitize_options(
+                            list(item.get("options", [])) + ["None of the above", "Not enough information"]
+                        )
+                    if not item.get("answer") and item.get("options"):
+                        item["answer"] = item["options"][0]
+                    if not item.get("timestamp") and index < len(concepts):
+                        item["timestamp"] = round(float(concepts[index].get("timestamp", 0) or 0), 3)
+                questions = parsed[:num_questions] or fallback_questions
+                status = "gemini"
+        except Exception as exc:
+            print(f"Segment quiz generation Gemini pass failed: {exc}")
+
+    return {
+        "status": status,
+        "questions": questions[:num_questions],
+        "question_count": min(num_questions, len(questions)),
+        "segment_length": len(transcript_text),
+        "title_hint": title_hint,
     }

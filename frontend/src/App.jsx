@@ -43,7 +43,7 @@ function App() {
   const [ingestInfo, setIngestInfo] = useState(null);
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
-  const [selectedPanel, setSelectedPanel] = useState('chat');
+  const [selectedPanel, setSelectedPanel] = useState('objectives');
   const [analysisRefreshKey, setAnalysisRefreshKey] = useState(0);
 
   const handleIngestSuccess = (id, ytId, info) => {
@@ -346,7 +346,7 @@ function App() {
               <button className="ghost" onClick={() => { setVideoId(null); setIngestInfo(null); }} style={{ borderRadius: '12px' }}>Analyze Another Video</button>
             </div>
 
-            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
+            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.35fr) minmax(360px, 1fr)', gap: '2rem', alignItems: 'start' }}>
               {/* Left Column: Player, Chapters, and Summary */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0 }}>
                 <div className="atmospheric-glow" style={{ borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
@@ -356,27 +356,27 @@ function App() {
                 <SummaryDashboard videoId={videoId} isProcessing={isProcessing} previewTitle={ingestInfo?.preview_title} previewSummary={ingestInfo?.preview_summary} onTimestampClick={handleTimestampClick} />
               </div>
 
-              {/* Right Column: Chat */}
-              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, position: 'sticky', top: '100px' }}>
-                <div style={{ height: 'calc(100vh - 150px)', minHeight: '420px' }}>
+              {/* Right Column: Chat, Detail Tabs, and Quiz */}
+              <div className="workspace-right-col" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, position: 'sticky', top: '100px', alignSelf: 'start' }}>
+                <div className="glass-panel atmospheric-glow" style={{ minHeight: '560px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                </div>
 
-                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                <div className="glass-panel atmospheric-glow" style={{ padding: '1.25rem', borderRadius: '1.5rem' }}>
+                  <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                     {[
-                      ['chat','Chat'],
-                      ['objectives','Objectives'],
-                      ['notes','Notes'],
-                      ['concepts','Concepts'],
-                      ['summaries','Summaries'],
-                      ['analytics','Analytics'],
+                      ['objectives', 'Objectives'],
+                      ['notes', 'Notes'],
+                      ['concepts', 'Concepts'],
+                      ['summaries', 'Summaries'],
+                      ['analytics', 'Analytics'],
                     ].map(([key, label]) => (
-                      <button key={key} onClick={() => setSelectedPanel(key)} className={selectedPanel===key? 'active-tab':''} style={{ padding: '0.4rem 0.6rem', borderRadius: 8 }}>{label}</button>
+                      <button key={key} onClick={() => setSelectedPanel(key)} className={selectedPanel === key ? 'active-tab' : ''} style={{ padding: '0.45rem 0.75rem', borderRadius: 999, fontSize: '0.85rem' }}>{label}</button>
                     ))}
                   </div>
 
-                  <div style={{ marginTop: '0.75rem', border: '1px solid var(--outline-variant)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ border: '1px solid var(--outline-variant)', borderRadius: 16, overflow: 'hidden', background: 'rgba(255,255,255,0.4)' }}>
                     <Suspense fallback={<LoadingSpinner />}>
-                      {selectedPanel === 'chat' && <div />}
                       {selectedPanel === 'objectives' && <ObjectivesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
                       {selectedPanel === 'notes' && <StudyNotesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
                       {selectedPanel === 'concepts' && <ConceptsPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
@@ -385,6 +385,7 @@ function App() {
                     </Suspense>
                   </div>
                 </div>
+
                 <QuizPanel videoId={videoId} isProcessing={isProcessing} />
               </div>
             </div>

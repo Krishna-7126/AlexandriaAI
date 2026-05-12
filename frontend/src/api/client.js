@@ -1,4 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001';
+const analysisCache = new Map();
+const analysisInFlight = new Map();
 
 // Get JWT token from localStorage
 function getAuthToken() {
@@ -70,18 +72,31 @@ export async function getIngestStatus(jobId) {
 }
 
 export async function getAnalysis(videoId) {
+  const cached = analysisCache.get(videoId);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  if (analysisInFlight.has(videoId)) {
+    return analysisInFlight.get(videoId);
+  }
+
+  const request = (async () => {
   const response = await fetch(`${API_BASE}/analysis/${videoId}`, {
     headers: getAuthHeaders()
   });
   if (response.ok) {
     const data = await response.json();
-    return {
+    const value = {
       educational_score: data.educational_score ?? 0,
       teaching_mode: data.teaching_mode ?? 'mixed',
       learning_objectives: Array.isArray(data.learning_objectives) ? data.learning_objectives : [],
       key_concepts: Array.isArray(data.key_concepts) ? data.key_concepts : [],
       ...data,
     };
+    analysisCache.set(videoId, { value, expiresAt: Date.now() + 5000 });
+    return value;
   }
 
   if (response.status !== 404) {
@@ -116,6 +131,15 @@ export async function getAnalysis(videoId) {
     key_concepts: [],
     status: ready ? 'success' : 'processing',
   };
+  })();
+
+  analysisInFlight.set(videoId, request);
+
+  try {
+    return await request;
+  } finally {
+    analysisInFlight.delete(videoId);
+  }
 }
 
 export async function getOverallSummary(videoId) {
@@ -209,6 +233,18 @@ export async function getQuizPerformance(videoId = null, userId = null, sessionI
     headers: getAuthHeaders()
   });
   return await parseResponse(response, 'Failed to get quiz performance');
+}
+
+export async function generateCustomQuiz(videoId, startTime, endTime, numQuestions = 5) {
+  const params = new URLSearchParams();
+  params.set('start_time', String(startTime));
+  params.set('end_time', String(endTime));
+  params.set('num_questions', String(numQuestions));
+
+  const response = await fetch(`${API_BASE}/v3/quiz/generate-window/${videoId}?${params.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  return await parseResponse(response, 'Failed to generate custom quiz');
 }
 
 // Helper to handle the NDJSON streaming response from /ask/stream
