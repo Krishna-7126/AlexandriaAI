@@ -9,6 +9,20 @@ function timeoutFetch(url, opts = {}, ms = 15000) {
 
 const cache = new Map();
 
+export function clearVideoCache(videoId) {
+  for (const key of cache.keys()) {
+    if (key.includes(`:${videoId}`)) {
+      cache.delete(key);
+    }
+  }
+}
+
+export async function getAnalysisStatus(videoId, start = false) {
+  const res = await timeoutFetch(`${BASE}/v3/analyze/status/${videoId}?start=${start ? 'true' : 'false'}`, {}, 10000);
+  if (!res.ok) throw new Error('Failed to fetch analysis status');
+  return res.json();
+}
+
 export async function getObjectives(videoId) {
   const key = `v3:objectives:${videoId}`;
   if (cache.has(key)) return cache.get(key);
@@ -55,4 +69,12 @@ export async function getAnalytics(userId) {
   return res.json();
 }
 
-export default { getObjectives, getStudyNotes, getConcepts, getSummaries, getAnalytics };
+export default {
+  getObjectives,
+  getStudyNotes,
+  getConcepts,
+  getSummaries,
+  getAnalytics,
+  getAnalysisStatus,
+  clearVideoCache,
+};

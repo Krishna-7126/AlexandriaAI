@@ -34,3 +34,12 @@ $env:PYTHONPATH = Get-Location
 .\.venv\Scripts\Activate.ps1
 pytest tests -q
 ```
+
+6) Optional: Run Redis + background worker for queued educational analysis:
+
+```powershell
+docker compose -f docker-compose.redis-worker.yml up -d
+```
+
+With worker enabled, v3 educational analysis may return `status: queued` first,
+then update automatically once the background job caches final results.

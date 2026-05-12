@@ -24,7 +24,7 @@ from .utils.transcript_store import get_chunks
 from .utils.quick_summary import generate_quick_summary, is_gemini_error
 from .auth_routes import router as auth_router
 from .features_routes import router as features_router
-from .utils.education_ai import analyze_educational_content, get_smart_timestamps
+from .utils.education_ai import analyze_educational_content, get_smart_timestamps, invalidate_educational_cache
 from .utils.quiz_service import generate_or_get_quiz, get_next_question, submit_answer, get_performance
 from .models import SessionLocal
 from .v3_routes import router as v3_router
@@ -150,6 +150,8 @@ def _build_fast_preview(video_url: str) -> dict:
 def _run_ingest_video_job(job_id: str, video_id: str, video_url: str):
     """Run ingest job with progress tracking."""
     try:
+        # Clear stale analysis cache so fresh ingest regenerates analysis.
+        invalidate_educational_cache(video_id)
         # Update progress: downloading
         existing = _get_ingest_job(job_id) or {}
         _set_ingest_job(job_id, {
@@ -210,6 +212,8 @@ def _run_ingest_video_job(job_id: str, video_id: str, video_url: str):
 def _run_ingest_file_job(job_id: str, video_id: str, file_bytes: bytes, file_name: str):
     """Run file ingest job with progress tracking."""
     try:
+        # Clear stale analysis cache so fresh ingest regenerates analysis.
+        invalidate_educational_cache(video_id)
         existing = _get_ingest_job(job_id) or {}
         _set_ingest_job(job_id, {
             **existing,

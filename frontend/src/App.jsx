@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BrainCircuit, FileText, Layout, ArrowRight } from 'lucide-react';
 import Navbar from './components/Navbar';
 import IngestPanel from './components/IngestPanel';
@@ -10,6 +10,7 @@ import Timeline from './components/Timeline';
 import './index.css';
 import { Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
+import { getAnalysisStatus, clearVideoCache } from './api/v3Client';
 
 const ObjectivesPanel = lazy(() => import('./components/ObjectivesPanel'));
 const StudyNotesPanel = lazy(() => import('./components/StudyNotesPanel'));
@@ -43,6 +44,7 @@ function App() {
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
   const [selectedPanel, setSelectedPanel] = useState('chat');
+  const [analysisRefreshKey, setAnalysisRefreshKey] = useState(0);
 
   const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
@@ -59,6 +61,37 @@ function App() {
       playerRef.current.seekTo(seconds);
     }
   };
+
+  // Poll analysis status so queued/background analysis can refresh UI automatically.
+  useEffect(() => {
+    let active = true;
+    let timer = null;
+
+    const check = async (start = false) => {
+      if (!videoId) return;
+      try {
+        const status = await getAnalysisStatus(videoId, start);
+        if (!active) return;
+        if (status.status === 'queued' || status.status === 'processing') {
+          timer = setTimeout(() => check(false), 3500);
+          return;
+        }
+        // Ready/no_data/other terminal status => clear panel caches and refresh panels
+        clearVideoCache(videoId);
+        setAnalysisRefreshKey((v) => v + 1);
+      } catch {
+        // Retry with backoff-ish polling cadence
+        if (active) timer = setTimeout(() => check(false), 5000);
+      }
+    };
+
+    if (videoId) check(true);
+
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [videoId]);
 
   return (
     <>
@@ -344,10 +377,10 @@ function App() {
                   <div style={{ marginTop: '0.75rem', border: '1px solid var(--outline-variant)', borderRadius: 12, overflow: 'hidden' }}>
                     <Suspense fallback={<LoadingSpinner />}>
                       {selectedPanel === 'chat' && <div />}
-                      {selectedPanel === 'objectives' && <ObjectivesPanel videoId={videoId} />}
-                      {selectedPanel === 'notes' && <StudyNotesPanel videoId={videoId} />}
-                      {selectedPanel === 'concepts' && <ConceptsPanel videoId={videoId} />}
-                      {selectedPanel === 'summaries' && <SummariesPanel videoId={videoId} />}
+                      {selectedPanel === 'objectives' && <ObjectivesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
+                      {selectedPanel === 'notes' && <StudyNotesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
+                      {selectedPanel === 'concepts' && <ConceptsPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
+                      {selectedPanel === 'summaries' && <SummariesPanel videoId={videoId} refreshKey={analysisRefreshKey} />}
                       {selectedPanel === 'analytics' && <AnalyticsPanel userId={'me'} />}
                     </Suspense>
                   </div>

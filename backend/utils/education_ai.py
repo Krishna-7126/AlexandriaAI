@@ -7,7 +7,7 @@ from typing import Any
 from .gemini_client import generate_text, gemini_available
 from .summary_helper import extractive_summary
 from .transcript_store import get_chunks
-from .queue import cache_get as redis_cache_get, cache_set as redis_cache_set, enqueue_job, is_enabled as redis_enabled
+from .queue import cache_get as redis_cache_get, cache_set as redis_cache_set, cache_delete as redis_cache_delete, enqueue_job, is_enabled as redis_enabled
 
 _analysis_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
 
@@ -304,7 +304,8 @@ def analyze_educational_content(video_id: str) -> dict[str, Any]:
             if redis_enabled():
                 # enqueue background task to run full analysis and cache result
                 try:
-                    enqueue_job(__import__('backend.tasks', fromlist=['run_educational_analysis']).tasks.run_educational_analysis, video_id, transcript_text)
+                    from ..tasks import run_educational_analysis
+                    enqueue_job(run_educational_analysis, video_id, transcript_text)
                     analysis["status"] = "queued"
                 except Exception:
                     # Fall back to immediate analysis if enqueue fails
@@ -391,6 +392,23 @@ def _merge_parsed_into_analysis(analysis: dict, parsed: dict) -> dict:
     except Exception:
         pass
     return analysis
+
+
+def invalidate_educational_cache(video_id: str) -> None:
+    """Invalidate in-memory and Redis educational analysis cache for a video."""
+    # Redis key
+    try:
+        redis_cache_delete(f"v3:educational:{video_id}")
+    except Exception:
+        pass
+
+    # In-memory analysis cache entries
+    try:
+        keys_to_delete = [key for key in _analysis_cache.keys() if len(key) > 1 and key[1] == video_id]
+        for key in keys_to_delete:
+            _analysis_cache.pop(key, None)
+    except Exception:
+        pass
 
 
 def get_summary_levels(video_id: str) -> dict[str, str]:

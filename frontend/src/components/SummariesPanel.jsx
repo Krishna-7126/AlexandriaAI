@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { getSummaries } from '../api/v3Client';
 
-export default function SummariesPanel({ videoId }) {
+export default function SummariesPanel({ videoId, refreshKey = 0 }) {
   const [data, setData] = useState(null);
   const [level, setLevel] = useState('standard');
   const [error, setError] = useState(null);
@@ -12,7 +12,7 @@ export default function SummariesPanel({ videoId }) {
     if (!videoId) return;
     getSummaries(videoId, level).then(d => { if (mounted) setData(d); }).catch(e => { if (mounted) setError(e.message); });
     return () => { mounted = false; };
-  }, [videoId, level]);
+  }, [videoId, level, refreshKey]);
 
   if (!videoId) return <div style={{ padding: '1rem' }}>No video selected</div>;
   if (error) return <div style={{ padding: '1rem', color: 'var(--danger)' }}>{error}</div>;

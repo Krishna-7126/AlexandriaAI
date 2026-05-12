@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: alexandria-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  worker:
+    image: python:3.11-slim
+    container_name: alexandria-rq-worker
+    working_dir: /app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    volumes:
+      - ./:/app
+    depends_on:
+      - redis
+    command: >
+      sh -c "pip install --no-cache-dir -r backend/requirements.txt && rq worker alexandria"
+
+volumes:
+  redis_data:

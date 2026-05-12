@@ -11,6 +11,7 @@ from .session import get_session_history
 from .rag import ask_question
 from .models import SessionLocal, QuizQuestion, QuizResponse
 from .utils.quiz_service import generate_or_get_quiz, get_next_question, submit_answer, get_performance
+from .utils.education_ai import analyze_educational_content
 from .v3_features.education_detector import detect_educational_sections, score_educational_relevance, identify_teaching_patterns, extract_implied_objectives, filter_non_educational_segments
 from .v3_features.intelligent_timestamping import detect_concept_transitions, identify_teaching_moments, generate_smart_chapters, label_chapters_by_concept, create_checkpoint_markers
 from .v3_features.concept_extractor import extract_concepts_hierarchical, detect_prerequisites, generate_concept_definitions, map_concept_relationships, assess_concept_difficulty, calculate_concept_importance
@@ -87,6 +88,29 @@ def analyze_educational(request: AnalyzeRequest):
 @router.post("/analyze/full")
 def analyze_full(request: AnalyzeRequest):
     return {"video_id": request.video_id, "status": "success", **run_all_passes(filter_non_educational_segments(request.transcript))}
+
+
+@router.get("/analyze/status/{video_id}")
+def analyze_status(video_id: str, start: bool = False):
+    """Return current educational analysis status for polling.
+
+    When `start=true`, this endpoint also triggers analysis generation.
+    """
+    if start:
+        analysis = analyze_educational_content(video_id)
+    else:
+        transcript = _transcript_for_video(video_id)
+        if not transcript:
+            return {"video_id": video_id, "status": "no_data"}
+        analysis = analyze_educational_content(video_id)
+
+    return {
+        "video_id": video_id,
+        "status": analysis.get("status", "success"),
+        "educational_score": analysis.get("educational_score", 0),
+        "chunk_count": analysis.get("chunk_count", 0),
+        "transcript_length": analysis.get("transcript_length", 0),
+    }
 
 
 @router.get("/concepts/{video_id}")

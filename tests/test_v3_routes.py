@@ -54,6 +54,14 @@ def test_v3_study_notes_endpoint():
     assert body["flashcards"]
 
 
+def test_v3_analyze_status_endpoint():
+    response = client.get("/v3/analyze/status/v3-test-video", params={"start": "true"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["video_id"] == "v3-test-video"
+    assert "status" in body
+
+
 def test_v3_profile_preferences_roundtrip():
     post = client.post("/v3/profile/preferences", json={"user_id": "u1", "learning_style": "visual", "difficulty_preference": "beginner", "pace": "normal", "interests": ["testing"], "background_knowledge": "basic"})
     assert post.status_code == 200

@@ -42,6 +42,16 @@ def cache_get(key: str) -> Any:
 def cache_set(key: str, value: Any, ttl: int = 3600) -> bool:
     if not _redis:
         return False
+
+
+def cache_delete(key: str) -> bool:
+    if not _redis:
+        return False
+    try:
+        _redis.delete(key)
+        return True
+    except Exception:
+        return False
     try:
         _redis.set(key, json.dumps(value), ex=ttl)
         return True
