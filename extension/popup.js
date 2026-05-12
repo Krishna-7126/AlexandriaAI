@@ -190,26 +190,27 @@ async function handleSignup(e) {
 // Core Features
 // ============================================
 
-async function generateSummary() {
+async function generateSummary(options = {}) {
     const videoId = await getYouTubeVideoId();
     if (!videoId) {
         showError('Not on a YouTube video or unable to detect video ID');
         return;
     }
 
-    showLoading(true);
+        const output = document.getElementById('summaryOutput');
+        const { silent = false } = options;
+        if (output && !silent) {
+            output.innerHTML = '<div class="analysis-empty">Generating a smart summary from the video ideas, not the raw subtitles...</div>';
+            output.style.display = 'block';
+        }
+
+        showLoading(true);
     try {
-        const response = await fetch(`${API_BASE}/features/ingest/auto`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                url: window.location.href,
-                title: document.title
-            })
-        });
+            const response = await fetch(`${API_BASE}/analysis/${videoId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
 
         if (!response.ok) {
             const data = await response.json();
@@ -217,20 +218,130 @@ async function generateSummary() {
         }
 
         const data = await response.json();
-        const output = document.getElementById('summaryOutput');
-        output.innerHTML = `
-            <strong>✅ Summary Generated!</strong><br><br>
-            <strong>Job ID:</strong> ${data.job_id}<br>
-            <strong>Status:</strong> ${data.status}<br><br>
-            ${data.preview_summary ? `<strong>Preview:</strong><br>${data.preview_summary}` : 'Processing...'}
-        `;
-        output.style.display = 'block';
-        showSuccess('Summary initiated! Check the web app for full results.');
+                renderAnalysis(data);
+                showSuccess('AI summary loaded! ✨');
     } catch (err) {
         showError(err.message);
     } finally {
         showLoading(false);
     }
+}
+
+function renderAnalysis(data) {
+        const output = document.getElementById('summaryOutput');
+        const summaryText = data.summary || 'No AI summary is available yet.';
+        const learningObjectives = Array.isArray(data.learning_objectives) ? data.learning_objectives : [];
+        const keyConcepts = Array.isArray(data.key_concepts) ? data.key_concepts : [];
+        const smartTimestamps = Array.isArray(data.timestamps) ? data.timestamps : [];
+        const topics = Array.isArray(data.topics) ? data.topics : [];
+            const score = Number(data.educational_score || 0);
+            const mood = data.teaching_mode || 'mixed';
+
+        output.innerHTML = `
+                <div class="summary-hero">
+                    <div class="summary-hero-copy">
+                        <div class="summary-kicker">Smart video intelligence</div>
+                        <h2>AI Summary</h2>
+                        <p>Clean, learning-first insights generated from the video meaning, not copied subtitles.</p>
+                    </div>
+                    <div class="summary-score">
+                        <div class="summary-score-value">${score}</div>
+                        <div class="summary-score-label">Learning score</div>
+                        <div class="summary-score-chip">${escapeHtml(mood)}</div>
+                    </div>
+                </div>
+
+            <div class="analysis-header">
+                <div>
+                        <strong>Overview</strong>
+                        <div class="analysis-meta">${escapeHtml(data.status || 'success')} • ${topics.length} topics • ${smartTimestamps.length} smart moments</div>
+                </div>
+                <div class="analysis-status">${escapeHtml(data.status || 'success')}</div>
+            </div>
+
+            <div class="analysis-block">
+                <div class="analysis-label">Overview</div>
+                <div class="analysis-text">${escapeHtml(summaryText)}</div>
+            </div>
+
+            ${learningObjectives.length ? `
+                <div class="analysis-block">
+                    <div class="analysis-label">What you will learn</div>
+                    <ul class="analysis-list">
+                        ${learningObjectives.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            ${keyConcepts.length ? `
+                <div class="analysis-block">
+                    <div class="analysis-label">Key concepts</div>
+                    <div class="analysis-pill-list">
+                        ${keyConcepts.map(item => `<span class="analysis-pill">${escapeHtml(item.name || 'Concept')}</span>`).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${topics.length ? `
+                <div class="analysis-block">
+                    <div class="analysis-label">Topic map</div>
+                    <div class="analysis-cards">
+                        ${topics.slice(0, 3).map(item => `
+                            <div class="analysis-card">
+                                <div class="analysis-card-title">${escapeHtml(item.topic || 'Topic')}</div>
+                                <div class="analysis-card-text">${escapeHtml(item.summary || '')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${smartTimestamps.length ? `
+                <div class="analysis-block">
+                    <div class="analysis-label">Smart moments</div>
+                    <div class="analysis-moments">
+                        ${smartTimestamps.slice(0, 5).map(item => `
+                            <button class="analysis-moment" type="button" data-time="${Number(item.time ?? item.timestamp ?? 0)}">
+                                <span class="analysis-moment-time">${formatTime(item.time ?? item.timestamp ?? 0)}</span>
+                                <span class="analysis-moment-label">${escapeHtml(item.label || 'Teaching moment')}</span>
+                                <span class="analysis-moment-reason">${escapeHtml(item.reason || '')}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+
+        output.style.display = 'block';
+
+        output.querySelectorAll('[data-time]').forEach(button => {
+            button.addEventListener('click', () => {
+                const seconds = Number(button.dataset.time || 0);
+                jumpToTimestamp(seconds);
+            });
+        });
+}
+
+function formatTime(seconds) {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        const minutes = Math.floor(total / 60);
+        const remaining = total % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
+}
+
+function escapeHtml(value) {
+        return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+}
+
+function jumpToTimestamp(seconds) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('t', Math.max(0, Math.floor(Number(seconds) || 0)));
+        window.open(url.toString(), '_blank', 'noopener');
 }
 
 async function askQuestion() {
@@ -524,10 +635,13 @@ function showLoading(show, btnId = null) {
     if (btnId) {
         const btn = document.getElementById(btnId);
         if (btn) {
+            if (!btn.dataset.originalText) {
+                btn.dataset.originalText = btn.textContent;
+            }
             if (show) {
-                btn.innerHTML = '<span class="loading"></span>';
+                btn.innerHTML = '<span class="loading"></span><span>Working...</span>';
             } else {
-                btn.textContent = btn.parentElement.textContent.split('\n')[0];
+                btn.textContent = btn.dataset.originalText || btn.textContent;
             }
         }
     }
@@ -574,7 +688,16 @@ async function loadCurrentPageInfo() {
     if (videoId && videoInfo) {
         videoInfo.style.display = 'block';
         videoTitle.textContent = document.title;
+        loadSummaryIfVideoPresent();
     }
+}
+
+function loadSummaryIfVideoPresent() {
+    const hint = document.getElementById('summaryHint');
+    if (hint) {
+        hint.textContent = 'Analyzing the current video...';
+    }
+    generateSummary({ silent: true }).catch(() => {});
 }
 
 function logout() {

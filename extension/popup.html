@@ -238,6 +238,87 @@
       margin-top: 0.3rem;
     }
 
+    .summary-hero {
+      display: flex;
+      gap: 1rem;
+      align-items: stretch;
+      justify-content: space-between;
+      padding: 1rem;
+      border-radius: 1.1rem;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(14, 165, 233, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.14);
+      margin-bottom: 0.9rem;
+    }
+
+    .summary-hero-copy {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .summary-kicker {
+      display: inline-flex;
+      padding: 0.3rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.14);
+      color: #047857;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.55rem;
+    }
+
+    .summary-hero h2 {
+      font-size: 1.15rem;
+      line-height: 1.1;
+      margin-bottom: 0.35rem;
+      color: #0f172a;
+    }
+
+    .summary-hero p {
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: #475569;
+    }
+
+    .summary-score {
+      min-width: 84px;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(16, 185, 129, 0.12);
+      padding: 0.75rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.2rem;
+    }
+
+    .summary-score-value {
+      font-size: 1.7rem;
+      line-height: 1;
+      font-weight: 800;
+      color: #059669;
+    }
+
+    .summary-score-label {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .summary-score-chip {
+      display: inline-flex;
+      align-self: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #166534;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
     .tabs {
       display: flex;
       gap: 0.5rem;
@@ -327,6 +408,143 @@
       margin-top: 0.5rem;
     }
 
+    .analysis-empty {
+      padding: 0.85rem;
+      border-radius: 0.8rem;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px dashed rgba(16, 185, 129, 0.24);
+      color: #475569;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .analysis-meta,
+    .analysis-status {
+      font-size: 0.75rem;
+      color: #4b5563;
+      margin-top: 0.2rem;
+    }
+
+    .analysis-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #10b981;
+      margin-bottom: 0.45rem;
+    }
+
+    .analysis-block {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(16, 185, 129, 0.16);
+    }
+
+    .analysis-text {
+      color: #111827;
+      line-height: 1.55;
+      font-size: 0.88rem;
+    }
+
+    .analysis-list {
+      padding-left: 1.1rem;
+      margin: 0;
+      color: #111827;
+      line-height: 1.5;
+      font-size: 0.88rem;
+    }
+
+    .analysis-list li + li {
+      margin-top: 0.4rem;
+    }
+
+    .analysis-pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .analysis-pill {
+      display: inline-flex;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #166534;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .analysis-cards {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .analysis-card {
+      padding: 0.7rem;
+      border-radius: 0.7rem;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(16, 185, 129, 0.12);
+    }
+
+    .analysis-card-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+
+    .analysis-card-text {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #374151;
+    }
+
+    .analysis-moments {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .analysis-moment {
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(16, 185, 129, 0.16);
+      border-radius: 0.8rem;
+      background: #ffffff;
+      padding: 0.7rem;
+      display: grid;
+      gap: 0.2rem;
+      cursor: pointer;
+    }
+
+    .analysis-moment:hover {
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .analysis-moment-time {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #10b981;
+    }
+
+    .analysis-moment-label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .analysis-moment-reason {
+      font-size: 0.8rem;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
     .hidden {
       display: none;
     }
@@ -401,6 +619,16 @@
       flex: 1;
       padding: 0.6rem;
       font-size: 0.85rem;
+    }
+
+    .summary-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .summary-actions .btn {
+      flex: 1;
     }
 
     /* Scrollbar */
@@ -518,9 +746,14 @@
       <!-- Tab: Summary -->
       <div id="summary-tab" class="tab-content active">
         <div class="feature-group">
-          <button class="btn btn-primary" id="generateSummaryBtn">
-            <span>⚡ Generate Summary</span>
-          </button>
+          <div class="summary-actions">
+            <button class="btn btn-primary" id="generateSummaryBtn">
+              <span>⚡ Refresh AI Summary</span>
+            </button>
+          </div>
+          <div class="analysis-empty" id="summaryHint">
+            Open a video and Alexandria will summarize the ideas, concepts, and best moments automatically.
+          </div>
           <div id="summaryOutput" class="output-area hidden"></div>
         </div>
       </div>

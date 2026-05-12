@@ -38,7 +38,7 @@ function addAlexandriaButton() {
     `;
 
     const button = document.createElement('button');
-    button.textContent = '📚 Summarize';
+    button.textContent = '✨ Smart Summary';
     button.style.cssText = `
         padding: 8px 16px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

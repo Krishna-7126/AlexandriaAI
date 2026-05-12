@@ -41,12 +41,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// Inject content script into YouTube pages
-chrome.webNavigation.onCommitted.addListener((details) => {
-    if (details.url.includes('youtube.com') && details.frameId === 0) {
-        chrome.scripting.executeScript({
-            target: { tabId: details.tabId },
-            files: ['content.js']
-        }).catch(err => console.log('Content script injection handled:', err));
-    }
-}, { url: [{ hostContains: 'youtube.com' }] });
+// Content script is injected via manifest.json, so no extra webNavigation hook is needed.
