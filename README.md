@@ -119,9 +119,7 @@ Swagger docs: `http://localhost:8001/docs`
 ### 4. Run the Frontend
 
 ```bash
-cd frontend
-npm install
-npm run dev
+ 
 ```
 
 The app will be available at `http://localhost:5173`

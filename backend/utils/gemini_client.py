@@ -1,18 +1,22 @@
 import os
+import importlib
 
 genai = None
 _genai_import_attempted = False
 
 
 def _get_genai():
+    """Attempt to import the modern `google.genai` package first, then fall back."""
     global genai, _genai_import_attempted
     if not _genai_import_attempted:
         _genai_import_attempted = True
         try:
-            import google.generativeai as imported_genai
-            genai = imported_genai
-        except ImportError:
-            genai = None
+            genai = importlib.import_module("google.genai")
+        except Exception:
+            try:
+                genai = importlib.import_module("google.generativeai")
+            except Exception:
+                genai = None
     return genai
 
 import os
