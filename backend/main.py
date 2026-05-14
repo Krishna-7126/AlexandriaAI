@@ -2,6 +2,7 @@ from .utils.env_loader import load_project_env
 load_project_env()
 
 from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
 from fastapi import UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -30,10 +31,42 @@ from .utils.quiz_generator import generate_quiz_from_text
 from .models import SessionLocal
 from .v3_routes import router as v3_router
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from .utils.gemini_client import gemini_available, _get_api_key, heavy_ai_enabled, _detect_genai_impl
+
+    print("\n" + "="*60)
+    print("AI Learning Companion Backend Starting Up")
+    print("="*60)
+
+    # Check Gemini availability
+    has_api_key = bool(_get_api_key())
+    is_enabled = heavy_ai_enabled()
+    has_impl = _detect_genai_impl() is not None
+    gemini_ok = gemini_available()
+
+    print(f"✓ Gemini AI Service: {'✓ AVAILABLE' if gemini_ok else '✗ NOT AVAILABLE'}")
+    if not gemini_ok:
+        if not has_api_key:
+            print(f"  → Missing API key (GOOGLE_API_KEY, GEMINI_API_KEY, or GENAI_API_KEY)")
+        if not is_enabled:
+            print(f"  → Not enabled (set ENABLE_GEMINI=true in .env)")
+        if not has_impl:
+            print(f"  → Gemini library not installed (pip install google-genai)")
+        print(f"  → Fallback: Using local extractive summarization (less sophisticated but functional)")
+    else:
+        print(f"  → Smart AI answers enabled")
+
+    print("="*60 + "\n")
+
+    yield
+
+
 app = FastAPI(
     title="AI Learning Companion",
     description="RAG-based video learning assistant for LMS",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 # Add a simple rate limiter middleware (basic, per-IP)
@@ -818,35 +851,6 @@ def clear_video(video_id: str):
     except Exception as e:
         print(f"Clear video failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.on_event("startup")
-async def startup_event():
-    """Log AI service status on startup"""
-    from .utils.gemini_client import gemini_available, _get_api_key, heavy_ai_enabled, _detect_genai_impl
-    
-    print("\n" + "="*60)
-    print("AI Learning Companion Backend Starting Up")
-    print("="*60)
-    
-    # Check Gemini availability
-    has_api_key = bool(_get_api_key())
-    is_enabled = heavy_ai_enabled()
-    has_impl = _detect_genai_impl() is not None
-    gemini_ok = gemini_available()
-    
-    print(f"✓ Gemini AI Service: {'✓ AVAILABLE' if gemini_ok else '✗ NOT AVAILABLE'}")
-    if not gemini_ok:
-        if not has_api_key:
-            print(f"  → Missing API key (GOOGLE_API_KEY, GEMINI_API_KEY, or GENAI_API_KEY)")
-        if not is_enabled:
-            print(f"  → Not enabled (set ENABLE_GEMINI=true in .env)")
-        if not has_impl:
-            print(f"  → Gemini library not installed (pip install google-generativeai)")
-        print(f"  → Fallback: Using local extractive summarization (less sophisticated but functional)")
-    else:
-        print(f"  → Smart AI answers enabled")
-    
-    print("="*60 + "\n")
 
 @app.get("/health")
 def health():
