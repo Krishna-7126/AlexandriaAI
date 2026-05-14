@@ -70,6 +70,10 @@ def _coerce_warnings(value):
 
 def ask_question(video_id, question, history=[]):
     try:
+        # Log AI status
+        if not gemini_available():
+            print(f"⚠️  Gemini not available. Using local extractive fallback (less sophisticated but functional)")
+        
         qa_bundle = build_qa_bundle(video_id, question, history or [], limit=4)
         analysis = qa_bundle.get("analysis", analyze_educational_content(video_id))
         texts = qa_bundle.get("chunks", [])
@@ -197,11 +201,33 @@ def ask_question(video_id, question, history=[]):
             print(f"Gemini QA failed: {e}")
 
     if not answer:
-        # Create a concise local answer by extractive-summarizing the selected chunks
+        # Create a smarter local answer by synthesizing the selected chunks
         try:
             combined = ' '.join([c.get('text', '') for c in selected_chunks])
-            answer = extractive_summary(combined, num_sentences=3)
-        except Exception:
+            core_answer = extractive_summary(combined, num_sentences=3)
+            
+            # Generate a smarter synthesis using the educational context
+            if core_answer:
+                answer = core_answer
+                # Add synthesis based on key concepts if available
+                key_concepts = analysis.get('key_concepts', []) if isinstance(analysis, dict) else []
+                best_start = best_chunk.get('start_time', best_chunk.get('start', 0)) or 0
+                best_end = best_chunk.get('end_time', best_chunk.get('end', 0)) or 0
+                
+                relevant_concepts = [
+                    c for c in key_concepts 
+                    if isinstance(c, dict) and (
+                        best_start - 30 <= float(c.get('timestamp', c.get('time', 0)) or 0) <= best_end + 30
+                    )
+                ]
+                
+                if relevant_concepts:
+                    concept_names = [c.get('name', '') for c in relevant_concepts if c.get('name')]
+                    why_matters_list = [c.get('why_it_matters', '') for c in relevant_concepts if c.get('why_it_matters')]
+                    if concept_names and why_matters_list:
+                        answer = f"{core_answer}\n\nThis connects to: {', '.join(concept_names)}. {' '.join(why_matters_list[:2])}"
+        except Exception as e:
+            print(f"Fallback synthesis failed: {e}")
             answer = best_chunk.get('text', '').strip()
     if not answer:
         answer = "I found a relevant section, but the transcript chunk is empty."
