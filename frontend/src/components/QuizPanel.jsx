@@ -61,15 +61,11 @@ export default function QuizPanel({ videoId, isProcessing = false }) {
   };
 
   useEffect(() => {
-    if (!videoId) {
-      setQuizQuestion(null);
-      setPerformance(null);
-      setSelectedAnswer('');
-      setFreeTextAnswer('');
-      setFeedback(initialFeedback);
-      return;
-    }
-    loadNextQuestion(false);
+    if (!videoId) return;
+    const timer = window.setTimeout(() => {
+      void loadNextQuestion(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
