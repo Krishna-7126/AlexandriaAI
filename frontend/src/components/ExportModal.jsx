@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Download, FileText, BookOpen, Copy, Loader } from 'lucide-react';
+import { X, Download, Loader } from 'lucide-react';
 import { exportContent } from '../api/client';
 
 const EXPORT_OPTIONS = [
