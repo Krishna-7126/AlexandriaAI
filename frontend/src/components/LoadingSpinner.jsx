@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function LoadingSpinner({ size = 36 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
