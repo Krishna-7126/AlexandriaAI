@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { BrainCircuit, FileText, Layout, ArrowRight } from 'lucide-react';
 import Navbar from './components/Navbar';
 import IngestPanel from './components/IngestPanel';
@@ -10,7 +10,6 @@ import Timeline from './components/Timeline';
 import './index.css';
 import { Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { getAnalysisStatus, clearVideoCache } from './api/v3Client';
 
 const AnalyticsPanel = lazy(() => import('./components/AnalyticsPanel'));
 
@@ -40,7 +39,6 @@ function App() {
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
   const [selectedWorkspacePage, setSelectedWorkspacePage] = useState('overview');
-  const [analysisRefreshKey, setAnalysisRefreshKey] = useState(0);
 
   const workspacePages = [
     { id: 'overview', label: 'Overview' },
@@ -65,37 +63,6 @@ function App() {
       playerRef.current.seekTo(seconds);
     }
   };
-
-  // Poll analysis status so queued/background analysis can refresh UI automatically.
-  useEffect(() => {
-    let active = true;
-    let timer = null;
-
-    const check = async (start = false) => {
-      if (!videoId) return;
-      try {
-        const status = await getAnalysisStatus(videoId, start);
-        if (!active) return;
-        if (status.status === 'queued' || status.status === 'processing') {
-          timer = setTimeout(() => check(false), 3500);
-          return;
-        }
-        // Ready/no_data/other terminal status => clear panel caches and refresh panels
-        clearVideoCache(videoId);
-        setAnalysisRefreshKey((v) => v + 1);
-      } catch {
-        // Retry with backoff-ish polling cadence
-        if (active) timer = setTimeout(() => check(false), 5000);
-      }
-    };
-
-    if (videoId) check(true);
-
-    return () => {
-      active = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [videoId]);
 
   return (
     <>
@@ -401,7 +368,7 @@ function App() {
                       <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
                     )}
                     {selectedWorkspacePage === 'quiz' && (
-                      <QuizPanel videoId={videoId} isProcessing={isProcessing} />
+                      <QuizPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} />
                     )}
                     {selectedWorkspacePage === 'analytics' && <AnalyticsPanel userId={'me'} />}
                   </Suspense>
