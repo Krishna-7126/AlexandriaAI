@@ -98,13 +98,16 @@ export default function QuizPanel({ videoId, isProcessing = false }) {
   const canAnswer = !!quizQuestion && !isSubmitting && !isLoading;
 
   return (
-    <section className="glass-panel atmospheric-glow" style={{ padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid var(--glass-border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
+    <section className="glass-panel atmospheric-glow" style={{ padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>
+            <Sparkles size={14} /> Practice
+          </div>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Literata, serif', color: 'var(--primary)', fontSize: '1.15rem', marginBottom: '0.25rem' }}>
             <Sparkles size={18} /> Smart Quiz
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Practice the key ideas with active recall.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, maxWidth: '62ch', lineHeight: 1.6 }}>Practice the key ideas with active recall. The layout keeps the same theme but breaks the workflow into cleaner, easier-to-scan sections.</p>
         </div>
         <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
           <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{generatedCount || performance?.attempts || 0}</div>
@@ -206,7 +209,7 @@ export default function QuizPanel({ videoId, isProcessing = false }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem', color: 'var(--primary)', fontWeight: 700 }}>
                 <Trophy size={16} /> Progress
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', fontSize: '0.9rem' }}>
+              <div className="quiz-progress-grid">
                 <div><div style={{ color: 'var(--text-secondary)' }}>Accuracy</div><strong>{performance.accuracy ?? 0}%</strong></div>
                 <div><div style={{ color: 'var(--text-secondary)' }}>Avg score</div><strong>{performance.average_score ?? 0}</strong></div>
                 <div><div style={{ color: 'var(--text-secondary)' }}>Attempts</div><strong>{performance.attempts ?? 0}</strong></div>
