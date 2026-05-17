@@ -37,6 +37,19 @@
   .workspace-right-col {
     height: auto !important;
   }
+
+  .workspace-summary-grid,
+  .workspace-metric-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .timeline-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .quiz-progress-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* Mobile (≤768px) */
@@ -145,6 +158,18 @@
   .workspace-stats {
     flex-wrap: wrap !important;
     gap: 1rem !important;
+  }
+
+  .workspace-section-banner {
+    padding: 0.9rem !important;
+  }
+
+  .workspace-panel-title {
+    font-size: 1.15rem !important;
+  }
+
+  .timeline-grid {
+    grid-template-columns: 1fr !important;
   }
 
   /* Footer */
