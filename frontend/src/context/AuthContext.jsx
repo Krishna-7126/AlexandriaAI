@@ -1,31 +1,23 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-const AuthContext = createContext(null);
+import { useState, useCallback } from 'react';
+import { AuthContext } from './authContext';
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Restore session from localStorage on mount
-  useEffect(() => {
-    const savedToken = localStorage.getItem('alexandria_token');
+  const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('alexandria_user');
-    
-    if (savedToken && savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setToken(savedToken);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('Failed to restore session:', e);
-        localStorage.removeItem('alexandria_token');
-        localStorage.removeItem('alexandria_user');
-      }
+    if (!savedUser) return null;
+
+    try {
+      return JSON.parse(savedUser);
+    } catch (error) {
+      console.error('Failed to restore session:', error);
+      localStorage.removeItem('alexandria_token');
+      localStorage.removeItem('alexandria_user');
+      return null;
     }
-    setLoading(false);
-  }, []);
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('alexandria_token'));
+  const [loading] = useState(false);
+  const [error, setError] = useState(null);
 
   const signup = useCallback(async (username, email, password, fullName = '') => {
     setError(null);
@@ -179,10 +171,3 @@ export function AuthProvider({ children }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-}
