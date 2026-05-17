@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BrainCircuit, FileText, Layout, ArrowRight } from 'lucide-react';
+import { BrainCircuit, FileText, Layout, ArrowRight, MessageSquare, Clock3, Sparkles, BarChart3 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import IngestPanel from './components/IngestPanel';
 import VideoPlayer from './components/VideoPlayer';
@@ -12,6 +12,54 @@ import { Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 
 const AnalyticsPanel = lazy(() => import('./components/AnalyticsPanel'));
+
+const workspacePages = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    title: 'Learning overview',
+    description: 'A structured summary of the video with key concepts, objectives, and recent context.',
+    chips: ['Summary', 'Concept map', 'Recent context'],
+    icon: BrainCircuit,
+    accent: 'var(--primary-container)',
+  },
+  {
+    id: 'chat',
+    label: 'Q&A Chat',
+    title: 'Ask smarter questions',
+    description: 'Use follow-up prompts to clarify ideas, verify details, and jump to exact timestamps.',
+    chips: ['Follow-up questions', 'Timestamp jumps', 'Streaming answers'],
+    icon: MessageSquare,
+    accent: 'var(--primary)',
+  },
+  {
+    id: 'chapters',
+    label: 'Smart Moments',
+    title: 'Key moments',
+    description: 'Browse the most important segments in a compact timeline that is easy to scan.',
+    chips: ['Moments', 'Highlights', 'Jump points'],
+    icon: Clock3,
+    accent: 'var(--on-primary-fixed-variant)',
+  },
+  {
+    id: 'quiz',
+    label: 'Smart Quiz',
+    title: 'Practice and recall',
+    description: 'Answer active-recall questions tied to the video so the lesson sticks better.',
+    chips: ['Active recall', 'Instant grading', 'Progress'],
+    icon: Sparkles,
+    accent: 'var(--secondary)',
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    title: 'Session analytics',
+    description: 'Review the learning patterns, scores, and usage trends for this session.',
+    chips: ['Trends', 'Scores', 'Insights'],
+    icon: BarChart3,
+    accent: 'var(--tertiary)',
+  },
+];
 
 const FAQItem = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,20 +81,25 @@ const FAQItem = ({ question, answer }) => {
 };
 
 function App() {
-  const [videoId, setVideoId] = useState(null);
-  const [youtubeId, setYoutubeId] = useState(null);
-  const [ingestInfo, setIngestInfo] = useState(null);
+  const [videoId, setVideoId] = useState(import.meta.env.DEV ? 'dev-demo' : null);
+  const [youtubeId, setYoutubeId] = useState(import.meta.env.DEV ? 'dQw4w9WgXcQ' : null);
+  const [ingestInfo, setIngestInfo] = useState(
+    import.meta.env.DEV
+      ? {
+          preview_title: 'Demo Lecture: Intro to AI',
+          source: 'Dev Demo',
+          chunk_count: 12,
+          transcript_length: 482,
+          preview_summary: 'This is a short demo summary to show the workspace layout in development mode.',
+        }
+      : null
+  );
   const playerRef = useRef(null);
   const isProcessing = ingestInfo?.status === 'processing';
   const [selectedWorkspacePage, setSelectedWorkspacePage] = useState('overview');
 
-  const workspacePages = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'chat', label: 'Q&A Chat' },
-    { id: 'chapters', label: 'Smart Moments' },
-    { id: 'quiz', label: 'Smart Quiz' },
-    { id: 'analytics', label: 'Analytics' },
-  ];
+  // Use a lightweight tabs list derived from the full `workspacePages` above
+  const workspaceTabs = workspacePages.map((p) => ({ id: p.id, label: p.label }));
 
   const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
@@ -63,6 +116,9 @@ function App() {
       playerRef.current.seekTo(seconds);
     }
   };
+
+  const activeWorkspacePage = workspacePages.find((page) => page.id === selectedWorkspacePage) || workspacePages[0];
+  const ActiveWorkspaceIcon = activeWorkspacePage.icon;
 
   return (
     <>
@@ -337,13 +393,35 @@ function App() {
               </div>
 
               <div className="workspace-right-col glass-panel atmospheric-glow" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0, position: 'sticky', top: '100px', alignSelf: 'start', maxHeight: 'calc(100vh - 140px)', overflow: 'hidden' }}>
+                <div className="workspace-section-banner" style={{ borderLeft: `4px solid ${activeWorkspacePage.accent}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>
+                        <ActiveWorkspaceIcon size={14} color={activeWorkspacePage.accent} /> {activeWorkspacePage.label}
+                      </div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2, marginBottom: '0.35rem' }}>{activeWorkspacePage.title}</div>
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.93rem' }}>{activeWorkspacePage.description}</p>
+                    </div>
+                    <div style={{ flexShrink: 0, width: '44px', height: '44px', borderRadius: '1rem', background: 'var(--surface-container-low)', border: '1px solid var(--outline-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeWorkspacePage.accent }}>
+                      <ActiveWorkspaceIcon size={22} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+                    {activeWorkspacePage.chips.map((chip) => (
+                      <span key={chip} style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface-variant)', fontSize: '0.8rem', fontWeight: 600 }}>
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {workspacePages.map((page) => (
+                  {workspaceTabs.map((page) => (
                     <button
                       key={page.id}
                       onClick={() => setSelectedWorkspacePage(page.id)}
                       className={selectedWorkspacePage === page.id ? 'active-tab' : 'ghost'}
-                      style={{ padding: '0.5rem 0.9rem', borderRadius: 999, fontSize: '0.85rem' }}
+                      style={{ padding: '0.5rem 0.9rem', borderRadius: 999, fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                     >
                       {page.label}
                     </button>
