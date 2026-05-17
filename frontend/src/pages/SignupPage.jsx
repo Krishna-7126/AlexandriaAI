@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext';
 import { Mail, Lock, User, Globe, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import customLogo from '../assets/logo.png';
 import '../styles/auth.css';
