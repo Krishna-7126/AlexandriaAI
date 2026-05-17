@@ -110,6 +110,14 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
     teaching_mode: teachingMode,
   });
 
+  const visibleTopics = Array.isArray(topics) ? topics : [];
+  const objectiveCards = learningObjectives.length > 0
+    ? learningObjectives.slice(0, 3)
+    : ['Waiting for intelligent objectives...', 'The AI will surface the strongest learning goals here.', 'Use the summary once analysis finishes.'];
+  const conceptCards = (keyConcepts.length > 0
+    ? keyConcepts.slice(0, 3)
+    : visibleTopics.slice(0, 3).map((topic) => ({ name: topic.topic, timestamp: topic.timestamp }))).filter(Boolean);
+
 
   const hasVisibleContent = Boolean(overall || (topics && topics.length > 0) || recent || previewSummary);
 
@@ -158,55 +166,74 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-      <section className="fade-in glass-panel" style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
-            <Sparkles size={14} /> Educational Intelligence
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <section className="fade-in glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>
+              <Sparkles size={14} /> Overview
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.35rem', color: 'var(--primary)', fontFamily: 'Literata, serif' }}>Learning snapshot</h3>
+            <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '62ch' }}>
+              A structured summary that keeps the same visual language as the rest of the app while making each analysis section easier to scan.
+            </p>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>{educationalScore || 0}<span style={{ fontSize: '1rem', marginLeft: '0.25rem', color: 'var(--text-secondary)' }}>/100</span></div>
-          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)' }}>{teachingMode ? `Teaching mode detected: ${teachingMode}` : 'Analyzing teaching style...'}</p>
+          <div style={{ padding: '0.55rem 0.85rem', borderRadius: '999px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container-lowest)', color: 'var(--on-surface-variant)', fontSize: '0.82rem', fontWeight: 700 }}>
+            {teachingMode ? `Teaching mode: ${teachingMode}` : 'Analyzing teaching style...'}
+          </div>
         </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
-            <Target size={14} /> Learning Objectives
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr)', gap: '1rem', alignItems: 'stretch' }}>
+          <div style={{ padding: '1.25rem', borderRadius: '1.15rem', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.55rem' }}>
+              <Sparkles size={14} /> Educational Intelligence
+            </div>
+            <div style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>{educationalScore || 0}<span style={{ fontSize: '1rem', marginLeft: '0.25rem', color: 'var(--text-secondary)' }}>/100</span></div>
+            <p style={{ margin: '0.6rem 0 0', color: 'var(--text-secondary)', lineHeight: 1.65 }}>{teachingMode ? `Teaching mode detected: ${teachingMode}` : 'Analyzing teaching style...'}</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            {(learningObjectives.length > 0 ? learningObjectives.slice(0, 3) : ['Waiting for intelligent objectives...']).map((item, index) => (
-              <div key={index} style={{ padding: '0.6rem 0.75rem', borderRadius: '0.8rem', background: 'var(--surface-container)', color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.45 }}>
-                {item}
+
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+              <div style={{ padding: '1rem 1rem 1.05rem', borderRadius: '1.15rem', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.55rem' }}>
+                  <Target size={14} /> Learning Objectives
+                </div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  {objectiveCards.map((item, index) => (
+                    <div key={index} style={{ padding: '0.7rem 0.8rem', borderRadius: '0.95rem', background: 'var(--surface-container)', color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.45 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
-            <BrainCircuit size={14} /> Key Concepts
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            {(keyConcepts.length > 0 ? keyConcepts.slice(0, 3) : topics?.slice(0, 3).map((topic) => ({ name: topic.topic, timestamp: topic.timestamp })) || []).map((item, index) => (
-              <button key={index} type="button" onClick={() => jumpToTimestamp(item)} style={{ textAlign: 'left', background: 'var(--surface-container-low)', color: 'var(--text-primary)', border: '1px solid var(--outline-variant)', padding: '0.6rem 0.75rem', borderRadius: '0.8rem', boxShadow: 'none' }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.15rem' }}>{item.name || item.topic || 'Concept'}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTimestamp(item)}</div>
-              </button>
-            ))}
+
+              <div style={{ padding: '1rem 1rem 1.05rem', borderRadius: '1.15rem', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.55rem' }}>
+                  <BrainCircuit size={14} /> Key Concepts
+                </div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  {conceptCards.map((item, index) => (
+                    <button key={index} type="button" onClick={() => jumpToTimestamp(item)} style={{ textAlign: 'left', background: 'var(--surface-container-low)', color: 'var(--text-primary)', border: '1px solid var(--outline-variant)', padding: '0.75rem 0.85rem', borderRadius: '0.95rem', boxShadow: 'none' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '0.15rem' }}>{item.name || item.topic || 'Concept'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTimestamp(item)}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {isProcessing && (previewTitle || previewSummary) && (
+              <section className="fade-in" style={{ padding: '1rem 1.1rem', borderRadius: '1.15rem', background: 'linear-gradient(135deg, rgba(180,205,184,0.22), rgba(255,255,255,0.65))', border: '1px solid var(--outline-variant)' }}>
+                <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Instant Preview
+                </div>
+                <div style={{ fontWeight: 800, color: 'var(--primary)', marginBottom: '0.35rem' }}>{previewTitle || 'Processing video'}</div>
+                <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.7 }}>{previewSummary || 'The AI is still building the final summary and smart moments in the background.'}</p>
+              </section>
+            )}
           </div>
         </div>
       </section>
-
-      {isProcessing && (previewTitle || previewSummary) && (
-        <section className="fade-in glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-            Instant Preview
-          </div>
-          <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '0.4rem' }}>
-            {previewTitle || 'Processing video'}
-          </div>
-          <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.7 }}>
-            {previewSummary || 'The AI is still building the final summary and smart moments in the background.'}
-          </p>
-        </section>
-      )}
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
@@ -252,21 +279,21 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
       </section>
 
       {/* Grid for Topics and Recent Context */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem' }}>
         {/* Topic Summaries */}
-        <section className="fade-in glass-panel" style={{ animationDelay: '0.1s', padding: '2rem' }}>
+        <section className="fade-in glass-panel" style={{ animationDelay: '0.1s', padding: '1.75rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
             <List size={20} /> Key Concepts
           </h3>
           {topics && topics.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               {topics.map((t, i) => (
                 <div 
                   key={i} 
                   style={{ 
-                    background: '#fff', 
+                    background: 'var(--surface-container-lowest)', 
                     border: '1px solid var(--outline-variant)',
-                    padding: '1.25rem', 
+                    padding: '1.1rem 1.15rem', 
                     borderRadius: '1rem',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
@@ -297,17 +324,15 @@ export default function SummaryDashboard({ videoId, onTimestampClick, isProcessi
                 </div>
               ))}
             </div>
-          ) : (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>Topic summaries will be generated as analysis progresses.</p>
-          )}
+          ) : <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>Topic summaries will be generated as analysis progresses.</p>}
         </section>
 
         {/* Last N Minutes */}
-        <section className="fade-in glass-panel" style={{ animationDelay: '0.2s', padding: '2rem' }}>
+        <section className="fade-in glass-panel" style={{ animationDelay: '0.2s', padding: '1.75rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'Literata, serif', marginBottom: '1rem' }}>
             <History size={20} /> Recent Context
           </h3>
-          <div style={{ color: 'var(--text-primary)', lineHeight: 1.7 }}>
+          <div style={{ color: 'var(--text-primary)', lineHeight: 1.7, padding: '1rem 1.05rem', background: 'var(--surface-container-lowest)', borderRadius: '1rem', border: '1px solid var(--outline-variant)' }}>
             {recent || 'Recent AI context will appear once analysis finishes.'}
           </div>
         </section>
