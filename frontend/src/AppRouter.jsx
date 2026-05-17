@@ -9,6 +9,11 @@ import LoadingSpinner from './components/LoadingSpinner';
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
+  // Dev-only bypass: allow access without auth when running in dev
+  if (import.meta.env.DEV) {
+    return children;
+  }
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -47,7 +52,7 @@ export default function AppRouter() {
       <Route
         path="/"
         element={
-          isAuthenticated ? <Navigate to="/analyze" replace /> : <Navigate to="/auth/login" replace />
+          import.meta.env.DEV ? <Navigate to="/analyze" replace /> : (isAuthenticated ? <Navigate to="/analyze" replace /> : <Navigate to="/auth/login" replace />)
         }
       />
     </Routes>
