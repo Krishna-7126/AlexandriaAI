@@ -22,7 +22,7 @@
 |---|---|
 | 🎬 **YouTube Ingestion** | Paste any YouTube URL — captions extracted instantly |
 | 📁 **File Upload** | Upload `.mp4`, `.mp3`, `.webm` for AssemblyAI transcription |
-| 🧠 **AI Summaries** | Gemini-powered overall, topic-wise, and last-N-minutes summaries |
+| 🧠 **AI Summaries** | Grok (x.ai)-powered overall, topic-wise, and last-N-minutes summaries |
 | 💬 **Contextual Q&A** | RAG-based chat with streaming responses and timestamp citations |
 | ⏱️ **Timeline Navigation** | Click any timestamp to jump to that exact moment in the video |
 | 🗺️ **Topic Mind Map** | Visual breakdown of key concepts from the video |
@@ -75,7 +75,7 @@ AI-Learning-Companion/
 
 - **Python 3.11+**
 - **Node.js 18+**
-- A **Google Gemini API key** → [Get one free](https://aistudio.google.com/app/apikey)
+- A **Grok / x.ai API key** (set `XAI_API_KEY` in `.env`) — obtain from your Grok provider
 - An **AssemblyAI API key** *(optional, for file upload)* → [Get one free](https://www.assemblyai.com/)
 
 ### 1. Clone the Repository
@@ -94,7 +94,8 @@ cp .env.example .env
 Edit `.env` and fill in your API keys:
 
 ```env
-GOOGLE_API_KEY=your_google_gemini_api_key_here
+XAI_API_KEY=your_xai_api_key_here
+GROK_API_URL=https://api.x.ai/v1/responses
 ASSEMBLYAI_API_KEY=your_assemblyai_api_key_here
 ```
 
@@ -153,7 +154,7 @@ If the frontend runs on a different host or port, set `VITE_API_BASE_URL` to `ht
 1. Push this repo to GitHub
 2. Go to [render.com](https://render.com) → **New** → **Blueprint**
 3. Connect your GitHub repo — Render will auto-detect `render.yaml`
-4. Add your environment variables (`GOOGLE_API_KEY`, `ASSEMBLYAI_API_KEY`) in the Render dashboard
+4. Add your environment variables (`XAI_API_KEY`, `GROK_API_URL`, `ASSEMBLYAI_API_KEY`) in the Render dashboard
 5. Deploy! 🎉
 
 ### Deploy Frontend to Vercel / Netlify
@@ -182,7 +183,7 @@ fly deploy
 
 | Variable | Required | Description |
 |---|---|---|
-| `GOOGLE_API_KEY` | ✅ Yes | Google Gemini API key for AI summarization & Q&A |
+| `XAI_API_KEY` | ✅ Yes | Grok / x.ai API key for AI summarization & Q&A |
 | `ASSEMBLYAI_API_KEY` | ⚠️ Optional | AssemblyAI key for file upload transcription |
 | `ENABLE_CHROMA` | ❌ No | Set to `1` to enable persistent ChromaDB vector store |
 
