@@ -98,9 +98,6 @@ function App() {
   const isProcessing = ingestInfo?.status === 'processing';
   const [selectedWorkspacePage, setSelectedWorkspacePage] = useState('overview');
 
-  // Use a lightweight tabs list derived from the full `workspacePages` above
-  const workspaceTabs = workspacePages.map((p) => ({ id: p.id, label: p.label }));
-
   const handleIngestSuccess = (id, ytId, info) => {
     setVideoId(id);
     setYoutubeId(ytId);
@@ -346,7 +343,7 @@ function App() {
 
         {/* Interactive Workspace Section */}
         {videoId && (
-          <section className="fade-in" style={{ padding: '2rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <section className="fade-in" style={{ padding: '1.5rem', maxWidth: '1680px', margin: '0 auto' }}>
             <div className="glass-panel atmospheric-glow workspace-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                 <div>
@@ -373,7 +370,7 @@ function App() {
               <button className="ghost" onClick={() => { setVideoId(null); setIngestInfo(null); }} style={{ borderRadius: '12px' }}>Analyze Another Video</button>
             </div>
 
-            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(380px, 0.95fr)', gap: '2rem', alignItems: 'start' }}>
+            <div className="workspace-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.88fr) minmax(0, 1.12fr)', gap: '1.5rem', alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
                 <div className="atmospheric-glow" style={{ borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                   <VideoPlayer videoId={youtubeId} ref={playerRef} />
@@ -387,69 +384,89 @@ function App() {
                     {ingestInfo?.preview_title || ingestInfo?.source || 'Ready for AI analysis'}
                   </div>
                   <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-                    Use the page tabs to switch between the overview, chat, smart moments, quiz, and analytics.
+                    Use the feature sidebar to switch between the overview, chat, smart moments, quiz, and analytics.
                   </p>
                 </div>
               </div>
 
-              <div className="workspace-right-col glass-panel atmospheric-glow" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0, position: 'sticky', top: '100px', alignSelf: 'start', maxHeight: 'calc(100vh - 140px)', overflow: 'hidden' }}>
-                <div className="workspace-section-banner" style={{ borderLeft: `4px solid ${activeWorkspacePage.accent}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>
-                        <ActiveWorkspaceIcon size={14} color={activeWorkspacePage.accent} /> {activeWorkspacePage.label}
+              <div className="workspace-right-col workspace-shell glass-panel atmospheric-glow" style={{ minWidth: 0, position: 'relative', alignSelf: 'start', overflow: 'visible' }}>
+                <aside className="workspace-sidebar">
+                  <div className="workspace-sidebar__eyebrow">Feature menu</div>
+                  <div className="workspace-sidebar__title">Switch sections</div>
+                  <p className="workspace-sidebar__subtitle">Use the sidebar to move between the overview, chat, smart moments, quiz, and analytics.</p>
+
+                  <div className="workspace-sidebar__list">
+                    {workspacePages.map((page) => {
+                      const PageIcon = page.icon;
+                      const isActive = selectedWorkspacePage === page.id;
+
+                      return (
+                        <button
+                          key={page.id}
+                          type="button"
+                          onClick={() => setSelectedWorkspacePage(page.id)}
+                          className={`workspace-sidebar-item ${isActive ? 'workspace-sidebar-item--active' : ''}`}
+                          style={{ borderLeftColor: page.accent }}
+                        >
+                          <div className="workspace-sidebar-item__icon" style={{ color: page.accent, background: isActive ? 'rgba(255,255,255,0.8)' : 'var(--surface-container-lowest)' }}>
+                            <PageIcon size={18} />
+                          </div>
+                          <div className="workspace-sidebar-item__copy">
+                            <span className="workspace-sidebar-item__label">{page.label}</span>
+                            <span className="workspace-sidebar-item__description">{page.description}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </aside>
+
+                <div className="workspace-content">
+                  <div className="workspace-section-banner" style={{ borderLeft: `4px solid ${activeWorkspacePage.accent}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>
+                          <ActiveWorkspaceIcon size={14} color={activeWorkspacePage.accent} /> {activeWorkspacePage.label}
+                        </div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2, marginBottom: '0.35rem' }}>{activeWorkspacePage.title}</div>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.93rem' }}>{activeWorkspacePage.description}</p>
                       </div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2, marginBottom: '0.35rem' }}>{activeWorkspacePage.title}</div>
-                      <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.93rem' }}>{activeWorkspacePage.description}</p>
+                      <div style={{ flexShrink: 0, width: '44px', height: '44px', borderRadius: '1rem', background: 'var(--surface-container-low)', border: '1px solid var(--outline-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeWorkspacePage.accent }}>
+                        <ActiveWorkspaceIcon size={22} />
+                      </div>
                     </div>
-                    <div style={{ flexShrink: 0, width: '44px', height: '44px', borderRadius: '1rem', background: 'var(--surface-container-low)', border: '1px solid var(--outline-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeWorkspacePage.accent }}>
-                      <ActiveWorkspaceIcon size={22} />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+                      {activeWorkspacePage.chips.map((chip) => (
+                        <span key={chip} style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface-variant)', fontSize: '0.8rem', fontWeight: 600 }}>
+                          {chip}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
-                    {activeWorkspacePage.chips.map((chip) => (
-                      <span key={chip} style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface-variant)', fontSize: '0.8rem', fontWeight: 600 }}>
-                        {chip}
-                      </span>
-                    ))}
+
+                  <div className="workspace-content__body">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      {selectedWorkspacePage === 'overview' && (
+                        <SummaryDashboard
+                          videoId={videoId}
+                          isProcessing={isProcessing}
+                          previewTitle={ingestInfo?.preview_title}
+                          previewSummary={ingestInfo?.preview_summary}
+                          onTimestampClick={handleTimestampClick}
+                        />
+                      )}
+                      {selectedWorkspacePage === 'chat' && (
+                        <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                      )}
+                      {selectedWorkspacePage === 'chapters' && (
+                        <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
+                      )}
+                      {selectedWorkspacePage === 'quiz' && (
+                        <QuizPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} />
+                      )}
+                      {selectedWorkspacePage === 'analytics' && <AnalyticsPanel userId={'me'} />}
+                    </Suspense>
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {workspaceTabs.map((page) => (
-                    <button
-                      key={page.id}
-                      onClick={() => setSelectedWorkspacePage(page.id)}
-                      className={selectedWorkspacePage === page.id ? 'active-tab' : 'ghost'}
-                      style={{ padding: '0.5rem 0.9rem', borderRadius: 999, fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                    >
-                      {page.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ minHeight: '0', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    {selectedWorkspacePage === 'overview' && (
-                      <SummaryDashboard
-                        videoId={videoId}
-                        isProcessing={isProcessing}
-                        previewTitle={ingestInfo?.preview_title}
-                        previewSummary={ingestInfo?.preview_summary}
-                        onTimestampClick={handleTimestampClick}
-                      />
-                    )}
-                    {selectedWorkspacePage === 'chat' && (
-                      <ChatPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
-                    )}
-                    {selectedWorkspacePage === 'chapters' && (
-                      <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />
-                    )}
-                    {selectedWorkspacePage === 'quiz' && (
-                      <QuizPanel key={videoId || 'no-video'} videoId={videoId} isProcessing={isProcessing} />
-                    )}
-                    {selectedWorkspacePage === 'analytics' && <AnalyticsPanel userId={'me'} />}
-                  </Suspense>
                 </div>
               </div>
             </div>

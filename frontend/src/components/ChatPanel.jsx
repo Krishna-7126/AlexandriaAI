@@ -3,7 +3,9 @@ import { Send, MessageSquare, Clock } from 'lucide-react';
 import { askQuestionStream } from '../api/client';
 
 export default function ChatPanel({ videoId, onTimestampClick, isProcessing = false }) {
+  const defaultModel = import.meta.env.VITE_DEFAULT_GROK_MODEL || 'grok-4.20-reasoning';
   const [question, setQuestion] = useState('');
+  const [model, setModel] = useState(() => window.__ALEXANDRIA_SELECTED_MODEL__ || defaultModel);
   const [chatHistory, setChatHistory] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}`);
@@ -22,6 +24,7 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
   };
 
   useEffect(() => {
+    window.__ALEXANDRIA_SELECTED_MODEL__ = model;
     scrollToBottom();
   }, [chatHistory]);
 
@@ -163,8 +166,17 @@ export default function ChatPanel({ videoId, onTimestampClick, isProcessing = fa
           </p>
         </div>
 
-        <div style={{ padding: '0.55rem 0.85rem', borderRadius: '999px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container-lowest)', color: 'var(--on-surface-variant)', fontSize: '0.82rem', fontWeight: 700 }}>
-          {chatHistory.length} messages
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ padding: '0.55rem 0.85rem', borderRadius: '999px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container-lowest)', color: 'var(--on-surface-variant)', fontSize: '0.82rem', fontWeight: 700 }}>
+            {chatHistory.length} messages
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Model</label>
+            <select value={model} onChange={(e) => { setModel(e.target.value); window.__ALEXANDRIA_SELECTED_MODEL__ = e.target.value; }} style={{ padding: '0.35rem 0.5rem', borderRadius: '8px', background: 'var(--surface-container-lowest)' }}>
+              <option value="grok-4.20-reasoning">grok-4.20-reasoning</option>
+              <option value="grok-4.20">grok-4.20</option>
+            </select>
+          </div>
         </div>
       </div>
 

@@ -116,37 +116,56 @@ export default function Timeline({ videoId, onTimestampClick, isProcessing = fal
   };
 
   return (
-    <div className="glass-panel">
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
-        <Clock size={18} color="var(--primary)" /> Smart Moments
-      </h3>
+    <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+            <Clock size={14} /> Highlights
+          </div>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', marginBottom: '0.35rem', fontFamily: 'Literata, serif', color: 'var(--primary)' }}>
+            <Clock size={18} color="var(--primary)" /> Smart Moments
+          </h3>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '62ch' }}>
+            The most useful moments are grouped into scan-friendly cards so you can jump into the right point faster.
+          </p>
+        </div>
+        <div style={{ padding: '0.55rem 0.85rem', borderRadius: '999px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container-lowest)', color: 'var(--on-surface-variant)', fontSize: '0.82rem', fontWeight: 700 }}>
+          {visibleTimestamps.length} moments
+        </div>
+      </div>
       
       {loading ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading smart moments...</p>
       ) : (
-        <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.9rem' }}>
           {visibleTimestamps.map((ts, idx) => (
             <button
               key={idx}
               onClick={() => onTimestampClick && onTimestampClick(normalizeTimestamp(ts))}
               style={{
-                flexShrink: 0,
-                background: 'var(--surface-container)',
-                border: '1px solid var(--glass-border)',
+                background: 'var(--surface-container-lowest)',
+                border: '1px solid var(--outline-variant)',
                 color: 'var(--text-primary)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                padding: '0.5rem 1rem',
-                minWidth: '120px'
+                padding: '0.9rem 1rem',
+                minWidth: 0,
+                borderRadius: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
               }}
             >
-              <span style={{ fontSize: '0.8rem', color: 'var(--on-primary-fixed-variant)', marginBottom: '0.25rem', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--on-primary-fixed-variant)', marginBottom: '0.35rem', fontWeight: 700, padding: '0.2rem 0.45rem', borderRadius: '999px', background: 'var(--primary-fixed)', border: '1px solid var(--primary-fixed-dim)' }}>
                 {formatTime(normalizeTimestamp(ts))}
               </span>
-              <span style={{ fontSize: '0.9rem', textAlign: 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.93rem', textAlign: 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
                 {ts.displayLabel}
               </span>
+              {ts.reason && (
+                <p style={{ margin: '0.55rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {ts.reason}
+                </p>
+              )}
             </button>
           ))}
         </div>

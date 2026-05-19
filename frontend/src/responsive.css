@@ -33,9 +33,17 @@
     gap: 1.5rem !important;
   }
 
+  .workspace-shell {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Right column: restore natural height */
   .workspace-right-col {
     height: auto !important;
+  }
+
+  .workspace-sidebar {
+    position: static !important;
   }
 
   .workspace-summary-grid,
@@ -162,6 +170,10 @@
 
   .workspace-section-banner {
     padding: 0.9rem !important;
+  }
+
+  .workspace-sidebar-item {
+    padding: 0.85rem 0.95rem !important;
   }
 
   .workspace-panel-title {

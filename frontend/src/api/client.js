@@ -257,10 +257,11 @@ export async function askQuestionStream(videoId, question, sessionId, onChunk, o
         ...getAuthHeaders()
       },
       body: JSON.stringify({
-        video_id: videoId,
-        question: question,
-        session_id: sessionId
-      })
+          video_id: videoId,
+          question: question,
+          session_id: sessionId,
+          model: (window.__ALEXANDRIA_SELECTED_MODEL__ || undefined)
+        })
     });
 
     if (!response.ok) {
