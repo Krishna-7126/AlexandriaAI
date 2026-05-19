@@ -2,7 +2,7 @@ import os
 import re
 from .utils.similarity import keyword_similarity
 from .utils.transcript_store import get_chunks
-from .utils.gemini_client import generate_text, gemini_available
+from .utils.grok_client import generate_text, grok_available
 from .utils.summary_helper import extractive_summary
 from .utils.education_ai import analyze_educational_content, build_qa_bundle
 
@@ -68,11 +68,11 @@ def _coerce_warnings(value):
     return []
 
 
-def ask_question(video_id, question, history=[]):
+def ask_question(video_id, question, history=[], model_name: str | None = None):
     try:
         # Log AI status
-        if not gemini_available():
-            print(f"⚠️  Gemini not available. Using local extractive fallback (less sophisticated but functional)")
+        if not grok_available():
+            print(f"⚠️  Grok not available. Using local extractive fallback (less sophisticated but functional)")
         
         qa_bundle = build_qa_bundle(video_id, question, history or [], limit=4)
         analysis = qa_bundle.get("analysis", analyze_educational_content(video_id))
@@ -186,7 +186,7 @@ def ask_question(video_id, question, history=[]):
         if objectives:
             educational_context += "\nLearning objectives:\n" + "\n".join(f"- {item}" for item in objectives)
     answer = None
-    if gemini_available():
+    if grok_available():
         prompt = _build_answer_prompt(question, f"{educational_context}\n\n{context}".strip(), history)
         quality_guidance = _build_quality_guidance(quality_score, quality_warnings)
         prompt = (
@@ -195,10 +195,10 @@ def ask_question(video_id, question, history=[]):
             f"{prompt}"
         )
         try:
-            model_name = os.getenv("GEMINI_QA_MODEL", os.getenv("GEMINI_MODEL", "gemini-2.5-pro"))
-            answer = generate_text(prompt, temperature=0.25, max_output_tokens=700, model_name=model_name)
+            resolved = model_name or os.getenv("GROK_QA_MODEL") or os.getenv("GROK_MODEL") or "grok-4.20-reasoning"
+            answer = generate_text(prompt, temperature=0.25, max_output_tokens=700, model_name=resolved)
         except Exception as e:
-            print(f"Gemini QA failed: {e}")
+            print(f"Grok QA failed: {e}")
 
     if not answer:
         # Create a smarter local answer by synthesizing the selected chunks
