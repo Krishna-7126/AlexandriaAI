@@ -99,6 +99,7 @@ class AskRequest(BaseModel):
     video_id: str
     question: str
     session_id: str = None
+    model: str | None = None
 
 
 class QuizGenerateRequest(BaseModel):
@@ -402,7 +403,7 @@ def ask(request: AskRequest):
                 "status": "cached",
             }
         history = get_session_history(request.session_id) if request.session_id else []
-        answer, timestamps = ask_question(request.video_id, request.question, history)
+        answer, timestamps = ask_question(request.video_id, request.question, history, model_name=request.model)
         if request.session_id:
             add_to_session(request.session_id, request.question, answer)
         cache_answer(request.session_id, request.video_id, request.question, answer, timestamps)
@@ -430,7 +431,7 @@ def ask_stream(request: AskRequest):
             return StreamingResponse(cached_generate(), media_type="application/x-ndjson")
 
         history = get_session_history(request.session_id) if request.session_id else []
-        answer, timestamps = ask_question(request.video_id, request.question, history)
+        answer, timestamps = ask_question(request.video_id, request.question, history, model_name=request.model)
         
         def generate():
             for char in answer:
