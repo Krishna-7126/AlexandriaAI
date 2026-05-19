@@ -22,7 +22,7 @@
 - [ ] `.env` file created with production values
 - [ ] Database credentials configured
 - [ ] API keys obtained and tested:
-  - ✅ Google Gemini (required)
+  - ✅ Grok / x.ai (required)
   - ⚠️ AssemblyAI (optional)
   - ⚠️ Spotify (optional)
   - ⚠️ Notion (optional)
@@ -84,7 +84,8 @@ heroku addons:create heroku-postgresql:hobby-dev
 heroku login
 heroku create alexandria-ai
 git push heroku main
-heroku config:set GOOGLE_API_KEY=your_key
+heroku config:set XAI_API_KEY=your_key
+heroku config:set GROK_API_URL=https://api.x.ai/v1/responses
 heroku config:set SECRET_KEY=your_secret_key
 ```
 
@@ -139,7 +140,8 @@ heroku open
 - Click on service
 - Go to "Variables"
 - Add all from `.env.example`:
-  - `GOOGLE_API_KEY`
+  - `XAI_API_KEY`
+  - `GROK_API_URL`
   - `SECRET_KEY` (generate new)
   - `DATABASE_URL` (from PostgreSQL)
   - Other API keys
