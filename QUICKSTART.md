@@ -5,6 +5,13 @@
 ---
 
 ## 🎯 Quick Setup
+# ⚡ Alexandria v2.0 - Quick Start (5 Minutes)
+
+**Get Alexandria running locally with all new features in just 5 minutes!**
+
+---
+
+## 🎯 Quick Setup
 
 ### 1. Install Dependencies (1 min)
 
@@ -21,7 +28,7 @@ copy .env.example .env
 
 # Add your API key:
 # Open .env and set:
-# GOOGLE_API_KEY=your_key_from_google_ai_studio
+# XAI_API_KEY=your_xai_api_key_here
 ```
 
 **Get GOOGLE_API_KEY:**
@@ -68,7 +75,7 @@ Visit `http://localhost:8001/docs` in browser and try:
 ```
 1. Go: https://aistudio.google.com/app/apikey
 2. Create API Key
-3. Add to .env: GOOGLE_API_KEY=sk_...
+3. Add to .env: XAI_API_KEY=your_xai_api_key_here
 ```
 
 ### Spotify (Optional)
