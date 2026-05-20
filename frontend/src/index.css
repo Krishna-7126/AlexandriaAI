@@ -75,12 +75,13 @@
 
 body {
   font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--bg-color);
+  background-color: var(--db-bg, #F8FAFC);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   position: relative;
+  overflow: hidden;
 }
 
 body::before {
@@ -415,9 +416,10 @@ textarea::placeholder {
 }
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px;
+  /* Full-screen — DashboardLayout handles its own layout */
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
 header {
