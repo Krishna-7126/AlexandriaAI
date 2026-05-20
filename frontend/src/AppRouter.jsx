@@ -34,11 +34,11 @@ export default function AppRouter() {
 
   return (
     <Routes>
-      {/* Auth Routes - Available to everyone */}
-      <Route path="/auth/login" element={<LoginPage />} />
+      {/* Auth Routes */}
+      <Route path="/auth/login"  element={<LoginPage />}  />
       <Route path="/auth/signup" element={<SignupPage />} />
 
-      {/* Protected Routes - Require authentication */}
+      {/* Protected Dashboard — matches everything else */}
       <Route
         path="/*"
         element={
@@ -48,11 +48,15 @@ export default function AppRouter() {
         }
       />
 
-      {/* Redirect root to home or login */}
+      {/* Root redirect */}
       <Route
         path="/"
         element={
-          import.meta.env.DEV ? <Navigate to="/analyze" replace /> : (isAuthenticated ? <Navigate to="/analyze" replace /> : <Navigate to="/auth/login" replace />)
+          import.meta.env.DEV
+            ? <Navigate to="/dashboard" replace />
+            : (isAuthenticated
+                ? <Navigate to="/dashboard" replace />
+                : <Navigate to="/auth/login" replace />)
         }
       />
     </Routes>
