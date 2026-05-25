@@ -1,20 +1,20 @@
 /* Auth Pages Styling */
 :root {
-  --color-primary: #1f9d72;
-  --color-primary-dark: #0b2016;
-  --color-primary-light: #edf8f3;
-  --color-secondary: #6d7df2;
+  --color-primary: #2f7d5a;
+  --color-primary-dark: #143022;
+  --color-primary-light: #eef6ef;
+  --color-secondary: #b56c4d;
   --color-error: #ef4444;
   --color-success: #22c55e;
   --color-warning: #eab308;
   --color-info: #3b82f6;
-  --color-surface: #fcfaf7;
-  --color-surface-variant: #eadfd3;
-  --color-text: #151311;
-  --color-text-secondary: #514b45;
-  --color-border: #cdbfb1;
-  --shadow-md: 0 10px 24px rgba(14, 23, 20, 0.10);
-  --shadow-lg: 0 18px 40px rgba(14, 23, 20, 0.14);
+  --color-surface: #f7f2ea;
+  --color-surface-variant: #e7dbcd;
+  --color-text: #1b1714;
+  --color-text-secondary: #5d534b;
+  --color-border: #d7c6b5;
+  --shadow-md: 0 10px 22px rgba(34, 28, 24, 0.10);
+  --shadow-lg: 0 22px 48px rgba(34, 28, 24, 0.14);
   --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -25,9 +25,9 @@ html {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(31, 157, 114, 0.12), transparent 34%),
-    radial-gradient(circle at top right, rgba(109, 125, 242, 0.10), transparent 30%),
-    linear-gradient(180deg, #fdfbf8 0%, #f4eee6 100%);
+    radial-gradient(circle at 14% 16%, rgba(47, 125, 90, 0.10), transparent 28%),
+    radial-gradient(circle at 86% 12%, rgba(181, 108, 77, 0.10), transparent 22%),
+    linear-gradient(180deg, #faf5ed 0%, #f4eadf 100%);
   color: var(--color-text);
   overflow-x: hidden;
   overflow-y: auto;
@@ -71,8 +71,8 @@ button:focus-visible {
 .auth-left-section {
   flex: 1;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 28%),
-    linear-gradient(135deg, var(--color-primary-dark) 0%, #14513d 58%, #1d6a51 100%);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.10), transparent 26%),
+    linear-gradient(145deg, #163527 0%, #24533f 56%, #2b6448 100%);
   color: white;
   padding: 4rem 2rem;
   display: flex;
@@ -89,8 +89,8 @@ button:focus-visible {
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-  background-size: 50px 50px;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 72px 72px;
   animation: moveBackground 20s linear infinite;
   pointer-events: none;
 }
@@ -98,11 +98,11 @@ button:focus-visible {
 .auth-left-section::after {
   content: '';
   position: absolute;
-  inset: auto -10% -10% auto;
-  width: 24rem;
-  height: 24rem;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 70%);
-  filter: blur(18px);
+  inset: auto -6% -12% auto;
+  width: 26rem;
+  height: 26rem;
+  background: radial-gradient(circle, rgba(255, 240, 227, 0.16), transparent 68%);
+  filter: blur(22px);
   pointer-events: none;
 }
 
@@ -126,7 +126,8 @@ button:focus-visible {
 
 .auth-brand-name {
   font-size: 2.5rem;
-  font-weight: 800;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
   margin: 0.5rem 0;
   letter-spacing: -0.02em;
 }
@@ -172,7 +173,7 @@ button:focus-visible {
   flex-direction: column;
   justify-content: center;
   background:
-    linear-gradient(180deg, rgba(252, 250, 247, 0.92), rgba(246, 240, 232, 0.98));
+    linear-gradient(180deg, rgba(251, 245, 236, 0.96), rgba(242, 231, 218, 0.98));
   overflow-y: auto;
   max-height: 100vh;
 }
@@ -182,17 +183,18 @@ button:focus-visible {
   margin: 0 auto;
   width: 100%;
   padding: 2rem;
-  border-radius: 1.75rem;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(205, 191, 177, 0.55);
+  border-radius: 1.5rem;
+  background: rgba(255, 252, 247, 0.9);
+  border: 1px solid rgba(215, 198, 181, 0.8);
   box-shadow: var(--shadow-lg);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
 }
 
 .auth-form-title {
   font-size: 2rem;
-  font-weight: 800;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
   color: var(--color-text);
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.02em;
@@ -212,9 +214,9 @@ button:focus-visible {
   gap: 0.75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 0.5rem;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  border-radius: 0.75rem;
   color: var(--color-error);
   font-size: 0.95rem;
   animation: slideInDown 300ms ease-out;
@@ -280,11 +282,11 @@ button:focus-visible {
 .auth-input-wrapper select {
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 2.75rem;
-  border: 1px solid rgba(205, 191, 177, 0.9);
+  border: 1px solid rgba(215, 198, 181, 0.95);
   border-radius: 0.9rem;
   font-size: 1rem;
   font-family: inherit;
-  background: linear-gradient(180deg, #ffffff 0%, #fbf7f2 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8f0e7 100%);
   color: var(--color-text);
   transition:
     border-color var(--transition-fast),
@@ -318,7 +320,7 @@ button:focus-visible {
 }
 
 .auth-input:disabled {
-  background-color: #f5f5f5;
+  background-color: #f4efe8;
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -368,7 +370,7 @@ button:focus-visible {
 .auth-checkbox {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(205, 191, 177, 0.95);
+  border: 2px solid rgba(215, 198, 181, 0.95);
   border-radius: 0.45rem;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -377,7 +379,7 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #ffffff 0%, #f7f1ea 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f4ece3 100%);
 }
 
 .auth-checkbox:checked {
@@ -443,18 +445,18 @@ button:focus-visible {
 }
 
 .auth-button-primary {
-  background: linear-gradient(135deg, #25b182 0%, #177c5b 100%);
+  background: linear-gradient(135deg, #2f7d5a 0%, #1f6146 100%);
   color: white;
   box-shadow:
-    0 12px 24px rgba(23, 124, 91, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 12px 24px rgba(31, 97, 70, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .auth-button-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2bc08e 0%, #196d50 100%);
+  background: linear-gradient(135deg, #357f5d 0%, #225e45 100%);
   box-shadow:
-    0 16px 30px rgba(23, 124, 91, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    0 16px 30px rgba(31, 97, 70, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .auth-button-primary:active:not(:disabled) {
@@ -462,19 +464,19 @@ button:focus-visible {
 }
 
 .auth-button-social {
-  background: linear-gradient(180deg, #ffffff 0%, #f8f3ed 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f6efe6 100%);
   color: var(--color-text);
-  border: 1px solid rgba(205, 191, 177, 0.75);
+  border: 1px solid rgba(215, 198, 181, 0.75);
   box-shadow:
-    0 10px 22px rgba(14, 23, 20, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 10px 22px rgba(34, 28, 24, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .auth-button-social:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffffff 0%, #f3ece4 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f1e7db 100%);
   border-color: var(--color-primary);
   box-shadow:
-    0 14px 28px rgba(14, 23, 20, 0.10),
+    0 14px 28px rgba(34, 28, 24, 0.10),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
@@ -489,9 +491,9 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at top left, rgba(31, 157, 114, 0.15), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(109, 125, 242, 0.14), transparent 34%),
-    linear-gradient(135deg, #fdfbf8 0%, #f6eee5 50%, #efe8ff 100%);
+    radial-gradient(circle at 18% 18%, rgba(47, 125, 90, 0.12), transparent 26%),
+    radial-gradient(circle at 82% 12%, rgba(181, 108, 77, 0.11), transparent 24%),
+    linear-gradient(135deg, #fbf7f0 0%, #f2e6d8 58%, #efe8de 100%);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 
@@ -502,13 +504,13 @@ button:focus-visible {
 }
 
 .login-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.78));
-  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.94), rgba(250, 243, 235, 0.92));
+  border-radius: 20px;
   padding: 2.25rem 2.5rem;
-  box-shadow: 0 22px 56px rgba(25, 35, 50, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
+  box-shadow: 0 18px 42px rgba(34, 28, 24, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
 }
 
 .login-card-header {
@@ -524,8 +526,9 @@ button:focus-visible {
 .login-card h1 {
   margin: 0;
   font-size: 2rem;
+  font-family: Georgia, 'Times New Roman', serif;
   letter-spacing: -0.02em;
-  color: #2c2b4a;
+  color: #25221f;
 }
 
 .login-card .muted {
@@ -539,7 +542,7 @@ button:focus-visible {
 
 .label {
   font-size: 0.85rem;
-  color: #444654;
+  color: #554d46;
   margin-bottom: 0.5rem;
   display: block;
 }
@@ -554,28 +557,28 @@ button:focus-visible {
 .input-with-icon .icon {
   position: absolute;
   left: 14px;
-  color: #9aa0b2;
+  color: #8e857c;
 }
 
 .input-with-icon input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 3.25rem;
   border-radius: 14px;
-  border: 1px solid rgba(205, 191, 177, 0.75);
-  background: linear-gradient(180deg, #ffffff 0%, #f8f3ec 100%);
+  border: 1px solid rgba(215, 198, 181, 0.75);
+  background: linear-gradient(180deg, #ffffff 0%, #f6efe6 100%);
   font-size: 1rem;
   color: #111827;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 10px 22px rgba(14, 23, 20, 0.05);
+    0 10px 22px rgba(34, 28, 24, 0.05);
 }
 
 .input-with-icon input:focus {
   outline: none;
-  border-color: rgba(31, 157, 114, 0.85);
+  border-color: rgba(47, 125, 90, 0.85);
   box-shadow:
-    0 0 0 4px rgba(31, 157, 114, 0.10),
-    0 12px 24px rgba(14, 23, 20, 0.08);
+    0 0 0 4px rgba(47, 125, 90, 0.10),
+    0 12px 24px rgba(34, 28, 24, 0.08);
 }
 
 .icon-btn {
@@ -611,7 +614,7 @@ button:focus-visible {
 }
 
 .forgot {
-  color: #0d9488;
+  color: #2f7d5a;
   text-decoration: none;
 }
 
@@ -619,21 +622,21 @@ button:focus-visible {
   width: 100%;
   padding: 0.95rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #25b182 0%, #06a9b9 100%);
+  background: linear-gradient(135deg, #2f7d5a 0%, #1e5f44 100%);
   color: white;
   font-weight: 700;
   border: none;
   box-shadow:
-    0 16px 28px rgba(6, 169, 185, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    0 16px 28px rgba(31, 97, 70, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
   cursor: pointer;
 }
 
 .primary-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow:
-    0 18px 32px rgba(6, 169, 185, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+    0 18px 32px rgba(31, 97, 70, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -663,11 +666,11 @@ button:focus-visible {
 .social-btn.github { background: white; border: 1px solid rgba(0,0,0,0.06); }
 .social-btn.microsoft { background: white; border: 1px solid rgba(0,0,0,0.06); }
 
-.signup-link { text-align: center; margin-top: 0.5rem; color: #6b7280; }
+.signup-link { text-align: center; margin-top: 0.5rem; color: #62584f; }
 
-.signup-link a { color: #06b6d4; font-weight: 600; text-decoration: none; }
+.signup-link a { color: #2f7d5a; font-weight: 600; text-decoration: none; }
 
-.login-footer { position: fixed; bottom: 18px; left: 0; right: 0; display:flex; gap: 1rem; justify-content:center; color:#6b7280; }
+.login-footer { position: fixed; bottom: 18px; left: 0; right: 0; display:flex; gap: 1rem; justify-content:center; color:#62584f; }
 
 @media (max-width: 720px) {
   .login-card { padding: 1.5rem; border-radius: 12px; }
@@ -705,7 +708,7 @@ button:focus-visible {
   content: '';
   flex: 1;
   height: 1px;
-  background-color: var(--color-border);
+  background-color: rgba(215, 198, 181, 0.9);
 }
 
 .auth-divider span {
