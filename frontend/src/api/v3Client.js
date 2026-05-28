@@ -1,4 +1,4 @@
-const BASE = window.__ALEXANDRIA_API_BASE__ || '';
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001';
 
 function timeoutFetch(url, opts = {}, ms = 15000) {
   return Promise.race([
