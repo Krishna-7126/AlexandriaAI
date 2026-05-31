@@ -9,6 +9,7 @@ import VideoPlayer from './VideoPlayer';
 import ChatPanel from './ChatPanel';
 import IngestPanel from './IngestPanel';
 import LoadingSpinner from './LoadingSpinner';
+import { useAuth } from '../context/authContext';
 import '../styles/dashboard.css';
 
 const Timeline = lazy(() => import('./Timeline'));
@@ -79,6 +80,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function DashboardLayout() {
+  const { user } = useAuth();
   const [activeNav, setActiveNav]         = useState('dashboard');
   const [activeFeature, setActiveFeature] = useState('overview');
 
@@ -153,6 +155,7 @@ export default function DashboardLayout() {
   const pageTitle   = ingestInfo?.preview_title || ingestInfo?.source || 'No video loaded';
   const chapterCount = ingestInfo?.chunk_count   ?? 0;
   const wordCount    = ingestInfo?.transcript_length ?? 0;
+  const analyticsUserId = user?.user_id || 'dev-demo-user';
 
   return (
     <>
@@ -262,7 +265,7 @@ export default function DashboardLayout() {
                     {activeFeature === 'chat'      && <ChatPanel key={videoId} videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />}
                     {activeFeature === 'chapters'  && <Timeline videoId={videoId} isProcessing={isProcessing} onTimestampClick={handleTimestampClick} />}
                     {activeFeature === 'quiz'      && <QuizPanel key={videoId} videoId={videoId} isProcessing={isProcessing} />}
-                    {activeFeature === 'analytics' && <AnalyticsPanel userId="me" />}
+                    {activeFeature === 'analytics' && <AnalyticsPanel userId={analyticsUserId} />}
                   </Suspense>
                 </div>
               </>
