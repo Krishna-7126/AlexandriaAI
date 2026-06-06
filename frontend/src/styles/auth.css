@@ -395,7 +395,7 @@ button:focus-visible {
 }
 
 .auth-checkbox:hover {
-  box-shadow: 0 0 0 3px rgba(36, 185, 136, 0.1);
+  box-shadow: 0 0 0 3fpx rgba(36, 185, 136, 0.1);
 }
 
 .auth-checkbox:disabled {
